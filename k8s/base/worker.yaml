@@ -23,3 +23,5 @@ spec:
               value: redis:6379
             - name: UseAzureAi
               value: "false"
+            - name: EnableHttpsRedirection
+              value: "false"

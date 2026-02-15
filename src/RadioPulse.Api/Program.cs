@@ -86,6 +86,7 @@ builder.Services.AddScoped<IRadioPulseService, RadioPulseService>();
 builder.Services.AddSingleton<RecommendationEngine>();
 
 var app = builder.Build();
+var enableHttpsRedirection = builder.Configuration.GetValue("EnableHttpsRedirection", app.Environment.IsDevelopment());
 
 if (app.Environment.IsDevelopment())
 {
@@ -115,7 +116,10 @@ app.UseExceptionHandler(exceptionHandlerApp =>
     });
 });
 
-app.UseHttpsRedirection();
+if (enableHttpsRedirection)
+{
+    app.UseHttpsRedirection();
+}
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

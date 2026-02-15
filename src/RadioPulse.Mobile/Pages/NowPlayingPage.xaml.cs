@@ -5,11 +5,13 @@ namespace RadioPulse.Mobile.Pages;
 public partial class NowPlayingPage : ContentPage
 {
     private readonly RadioApiService apiService;
+    private readonly SessionState sessionState;
 
     public NowPlayingPage()
     {
         InitializeComponent();
         apiService = ServiceHelper.GetService<RadioApiService>();
+        sessionState = ServiceHelper.GetService<SessionState>();
     }
 
     protected override async void OnAppearing()
@@ -25,7 +27,14 @@ public partial class NowPlayingPage : ContentPage
 
     private async Task RefreshAsync()
     {
-        var nowPlaying = await apiService.GetNowPlayingAsync(CancellationToken.None);
-        TitleLabel.Text = nowPlaying?.Title ?? "Unavailable";
+        try
+        {
+            var nowPlaying = await apiService.GetNowPlayingAsync(CancellationToken.None);
+            TitleLabel.Text = nowPlaying?.Title ?? $"Unavailable ({sessionState.ApiBaseUrl})";
+        }
+        catch (Exception ex)
+        {
+            TitleLabel.Text = $"Error: {ex.Message}";
+        }
     }
 }

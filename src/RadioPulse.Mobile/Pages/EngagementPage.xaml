@@ -5,6 +5,7 @@
              Title="Vote &amp; Shoutout">
     <VerticalStackLayout Padding="24" Spacing="12">
         <Label Text="Live Poll" FontSize="24" FontAttributes="Bold" />
+        <Label Text="Login on the Login tab first. Uses SignalR with API fallback." FontSize="12" Opacity="0.8" />
         <Label x:Name="PollLabel" Text="Loading poll..." />
         <HorizontalStackLayout Spacing="10">
             <Button Text="Vote A" Clicked="OnVoteAClicked" />

@@ -6,7 +6,10 @@
     <VerticalStackLayout Padding="24" Spacing="16">
         <Label Text="RadioPulse Mobile" FontSize="28" FontAttributes="Bold" />
         <Label Text="Dev login for demo auth" />
+        <Entry x:Name="ApiBaseUrlEntry" Placeholder="API Base URL (e.g. http://localhost:5003)" />
+        <Entry x:Name="UserIdEntry" Placeholder="User Id (GUID)" />
         <Button Text="Login as Demo User" Clicked="OnLoginClicked" />
+        <Button Text="Sign out" Clicked="OnSignOutClicked" />
         <Label x:Name="StatusLabel" />
     </VerticalStackLayout>
 </ContentPage>

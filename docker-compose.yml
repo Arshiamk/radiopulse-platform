@@ -24,6 +24,7 @@ services:
       ConnectionStrings__radiopulsedb: Host=postgres;Port=5432;Database=radiopulsedb;Username=postgres;Password=postgres
       ConnectionStrings__redis: redis:6379
       Auth__Key: radiopulse-dev-signing-key-please-change
+      EnableHttpsRedirection: "false"
     depends_on:
       - postgres
       - redis
@@ -36,6 +37,8 @@ services:
       dockerfile: src/RadioPulse.Web/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      EnableHttpsRedirection: "false"
+      services__api__http__0: http://api:8080
     depends_on:
       - api
     ports:

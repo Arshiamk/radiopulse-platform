@@ -27,6 +27,7 @@ builder.Services.AddScoped<ProtectedLocalStorage>();
 builder.Services.AddScoped<DemoAuthSession>();
 
 var app = builder.Build();
+var enableHttpsRedirection = builder.Configuration.GetValue("EnableHttpsRedirection", app.Environment.IsDevelopment());
 
 if (!app.Environment.IsDevelopment())
 {
@@ -35,7 +36,10 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+if (enableHttpsRedirection)
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAntiforgery();
 

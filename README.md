@@ -99,7 +99,10 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
 2. Open:
    - Web: `http://localhost:8081`
    - API: `http://localhost:8080/api/status`
-3. Stop:
+3. Notes:
+   - Containers run HTTP-only in local compose (`EnableHttpsRedirection=false`).
+   - Web API discovery is wired via `services__api__http__0=http://api:8080`.
+4. Stop:
    - `docker compose down -v`
 
 ## How To Deploy To K8s
@@ -108,6 +111,9 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
 3. Apply manifests:
    - `kubectl apply -k k8s/base`
 4. Optional local ingress host: map `radiopulse.local` to ingress controller.
+5. Notes:
+   - Web resolves API through `services__api__http__0=http://api:8080`.
+   - Liveness/readiness probes are configured for API/Web (`/health`).
 
 ## Observability
 - Service defaults include health checks (`/health`, `/alive` in dev) and OpenTelemetry.
@@ -133,7 +139,8 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
 ## MAUI Notes
 - `src/RadioPulse.Mobile` includes Login, Now Playing, Vote/Shoutout, Recommendations pages.
 - Current repo build targets Windows MAUI in this environment.
-- API URL is configurable via `RADIOPULSE_API_URL` env var.
+- API URL is configurable via `RADIOPULSE_API_URL` env var and from the Login page input.
+- Default mobile API URL is `http://localhost:5003` for local Aspire HTTP profile.
 
 ## Demo Script
 - `docs/demo-script.md`
