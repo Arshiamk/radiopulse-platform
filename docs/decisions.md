@@ -24,3 +24,4 @@
 15. Recommendations use an ML.NET regression model persisted to `models/recommendations.zip` and trained automatically on startup when absent.
 16. MAUI app is implemented and build-targeted to Windows (`net10.0-windows10.0.19041.0`) in this environment to keep CI builds deterministic without Android SDK setup.
 17. Containerization is standardized with per-service Dockerfiles plus `docker-compose.yml`, and deployment manifests use a minimal Kustomize base under `k8s/base`.
+18. API integration tests use `WebApplicationFactory` with `UseInMemoryDb=true` to keep fast feedback without external infra in CI.

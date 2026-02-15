@@ -69,8 +69,18 @@ builder.Services.AddRateLimiter(options =>
 var postgresConnection = builder.Configuration.GetConnectionString("radiopulsedb")
     ?? builder.Configuration.GetConnectionString("postgres")
     ?? "Host=localhost;Port=5432;Database=radiopulsedb;Username=postgres;Password=postgres";
+var useInMemoryDb = builder.Configuration.GetValue<bool>("UseInMemoryDb");
 
-builder.Services.AddDbContext<RadioPulseDbContext>(options => options.UseNpgsql(postgresConnection));
+builder.Services.AddDbContext<RadioPulseDbContext>(options =>
+{
+    if (useInMemoryDb)
+    {
+        options.UseInMemoryDatabase("radiopulse-test");
+        return;
+    }
+
+    options.UseNpgsql(postgresConnection);
+});
 builder.Services.AddScoped<IRadioPulseService, RadioPulseService>();
 builder.Services.AddSingleton<RecommendationEngine>();
 
@@ -103,7 +113,11 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<RadioPulseDbContext>();
     var recommendationEngine = scope.ServiceProvider.GetRequiredService<RecommendationEngine>();
-    dbContext.Database.Migrate();
+    if (!useInMemoryDb)
+    {
+        dbContext.Database.Migrate();
+    }
+
     await SeedData.EnsureSeededAsync(dbContext, CancellationToken.None);
     var modelPath = Path.Combine(AppContext.BaseDirectory, "models", "recommendations.zip");
     recommendationEngine.EnsureModel(modelPath, await dbContext.ListenEvents.ToListAsync());
@@ -247,3 +261,5 @@ app.Run();
 public sealed record CreatePollRequest(Guid ShowId, string Question);
 public sealed record CreateVoteRequest(Guid PollId, Guid UserId, string Choice);
 public sealed record CreateShoutoutRequest(Guid UserId, string Message);
+
+public partial class Program;
