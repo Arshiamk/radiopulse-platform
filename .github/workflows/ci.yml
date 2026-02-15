@@ -21,7 +21,11 @@ jobs:
       - name: Test
         run: dotnet test src/RadioPulse.slnx -c Release --no-build
       - name: Smoke (API + Web runtime)
-        run: powershell -ExecutionPolicy Bypass -File .\scripts\smoke.ps1 -Configuration Release -ApiLaunchProfile none -WebLaunchProfile none -ApiUrl http://localhost:18089 -WebUrl http://localhost:17068
+        shell: pwsh
+        run: |
+          $apiPort = Get-Random -Minimum 20000 -Maximum 35000
+          $webPort = Get-Random -Minimum 35001 -Maximum 50000
+          powershell -ExecutionPolicy Bypass -File .\scripts\smoke.ps1 -Configuration Release -ApiLaunchProfile none -WebLaunchProfile none -NoBuild -ApiUrl "http://127.0.0.1:$apiPort" -WebUrl "http://127.0.0.1:$webPort"
       - name: Format Check
         run: dotnet format src/RadioPulse.slnx --verify-no-changes
 

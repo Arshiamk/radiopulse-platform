@@ -119,7 +119,7 @@ try {
     {
         $apiArgs += "--no-launch-profile"
         $apiArgs += "-p:UseAppHost=false"
-        $apiArgs += @("--urls", $ApiUrl)
+        $apiArgs += @("--", "--urls", $ApiUrl)
     }
     else
     {
@@ -149,7 +149,7 @@ try {
     {
         $webArgs += "--no-launch-profile"
         $webArgs += "-p:UseAppHost=false"
-        $webArgs += @("--urls", $WebUrl)
+        $webArgs += @("--", "--urls", $WebUrl)
     }
     else
     {
