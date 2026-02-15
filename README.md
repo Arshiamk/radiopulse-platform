@@ -2,18 +2,7 @@
 
 Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
 
-## Progress
-- [x] Phase 0 - Repo scaffolding and standards
-- [x] Phase 1 - Aspire orchestration and core services
-- [x] Phase 2 - Data layer and domain
-- [x] Phase 3 - Real-time engagement
-- [x] Phase 4 - Now playing, schedule, podcast UX
-- [x] Phase 5 - AuthN/AuthZ and security hardening
-- [x] Phase 6 - Azure AI integration with local stub
-- [x] Phase 7 - ML.NET recommendations
-- [x] Phase 8 - .NET MAUI app
-- [x] Phase 9 - Docker, K8s, CI/CD
-- [x] Phase 10 - Polish and demo assets
+
 
 ## Architecture
 ```text
