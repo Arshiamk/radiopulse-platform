@@ -5,9 +5,18 @@
 
 <h1>Now Playing and Schedule</h1>
 
-@if (nowPlaying is null)
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (isLoading)
 {
     <p><em>Loading now playing...</em></p>
+}
+else if (nowPlaying is null)
+{
+    <div class="alert alert-warning">No episode is currently available.</div>
 }
 else
 {
@@ -78,14 +87,30 @@ else
     private List<MomentDto> topMoments = new();
     private List<MomentDto> searchResults = new();
     private string searchTerm = string.Empty;
+    private string? errorMessage;
+    private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        var client = HttpClientFactory.CreateClient("radio-api");
-        nowPlaying = await client.GetFromJsonAsync<EpisodeDto>("/api/now-playing");
-        shows = await client.GetFromJsonAsync<List<ShowDto>>("/api/shows") ?? new List<ShowDto>();
-        episodes = await client.GetFromJsonAsync<List<EpisodeDto>>("/api/episodes") ?? new List<EpisodeDto>();
-        topMoments = await client.GetFromJsonAsync<List<MomentDto>>("/api/transcripts/top-moments") ?? new List<MomentDto>();
+        try
+        {
+            var client = HttpClientFactory.CreateClient("RadioPulse.Api");
+            var nowPlayingResponse = await client.GetAsync("/api/now-playing");
+            nowPlaying = nowPlayingResponse.IsSuccessStatusCode
+                ? await nowPlayingResponse.Content.ReadFromJsonAsync<EpisodeDto>()
+                : null;
+            shows = await client.GetFromJsonAsync<List<ShowDto>>("/api/shows") ?? new List<ShowDto>();
+            episodes = await client.GetFromJsonAsync<List<EpisodeDto>>("/api/episodes") ?? new List<EpisodeDto>();
+            topMoments = await client.GetFromJsonAsync<List<MomentDto>>("/api/transcripts/top-moments") ?? new List<MomentDto>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to load media data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private async Task SearchAsync()
@@ -96,7 +121,7 @@ else
             return;
         }
 
-        var client = HttpClientFactory.CreateClient("radio-api");
+        var client = HttpClientFactory.CreateClient("RadioPulse.Api");
         searchResults = await client.GetFromJsonAsync<List<MomentDto>>($"/api/transcripts/search?term={Uri.EscapeDataString(searchTerm)}")
             ?? new List<MomentDto>();
     }

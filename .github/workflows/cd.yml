@@ -5,7 +5,24 @@ on:
     branches: [main]
 
 jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore src/RadioPulse.slnx
+      - name: Build
+        run: dotnet build src/RadioPulse.slnx -c Release --no-restore
+      - name: Test
+        run: dotnet test src/RadioPulse.slnx -c Release --no-build
+      - name: Smoke (API + Web runtime)
+        run: powershell -ExecutionPolicy Bypass -File .\scripts\smoke.ps1 -Configuration Release
+
   publish-images:
+    needs: validate
     runs-on: ubuntu-latest
     permissions:
       contents: read

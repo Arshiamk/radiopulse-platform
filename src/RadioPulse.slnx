@@ -7,5 +7,6 @@
   <Project Path="RadioPulse.Mobile/RadioPulse.Mobile.csproj" />
   <Project Path="RadioPulse.ServiceDefaults/RadioPulse.ServiceDefaults.csproj" />
   <Project Path="RadioPulse.Web/RadioPulse.Web.csproj" />
+  <Project Path="RadioPulse.Web.Tests/RadioPulse.Web.Tests.csproj" />
   <Project Path="RadioPulse.Worker/RadioPulse.Worker.csproj" />
 </Solution>

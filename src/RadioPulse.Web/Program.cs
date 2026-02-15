@@ -1,16 +1,30 @@
 using RadioPulse.Web.Components;
+using RadioPulse.Web.Services;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddHttpClient("radio-api", client =>
+var apiClientBuilder = builder.Services.AddHttpClient("RadioPulse.Api", client =>
 {
-    client.BaseAddress = new Uri("http://api");
-});
+    client.BaseAddress = new Uri("https://api");
+})
+.AddServiceDiscovery();
+
+if (builder.Environment.IsDevelopment())
+{
+    apiClientBuilder.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        ServerCertificateCustomValidationCallback =
+            HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+    });
+}
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddScoped<ProtectedLocalStorage>();
+builder.Services.AddScoped<DemoAuthSession>();
 
 var app = builder.Build();
 
@@ -31,3 +45,5 @@ app.MapRazorComponents<App>()
 app.MapDefaultEndpoints();
 
 app.Run();
+
+public partial class Program;

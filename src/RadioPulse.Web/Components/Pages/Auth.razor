@@ -1,15 +1,114 @@
 @page "/auth"
+@using System.Text.Json.Serialization
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@inject ProtectedLocalStorage LocalStorage
+@inject RadioPulse.Web.Services.DemoAuthSession DemoAuthSession
 
 <PageTitle>Authentication</PageTitle>
 
-<h1>Authentication Placeholder</h1>
+<h1>Authentication</h1>
 
 <div class="card p-4">
-    <p>
-        This environment currently uses a development auth placeholder. Full JWT auth + SignalR auth hardening lands in Phase 5.
-    </p>
-    <p>
-        For now, continue as <strong>Demo Host</strong> to access interactive features.
-    </p>
-    <button class="btn btn-primary" disabled>Continue as Demo Host (Phase 1)</button>
+    <p>Sign in with a demo account to unlock voting, poll creation, and shoutouts.</p>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    @if (DemoAuthSession.IsAuthenticated)
+    {
+        <div class="alert alert-success">
+            Signed in as <strong>@DemoAuthSession.DisplayName</strong> (@DemoAuthSession.UserId)
+        </div>
+        <button class="btn btn-outline-danger" @onclick="SignOut">Sign out</button>
+    }
+    else
+    {
+        <div class="d-flex gap-2 flex-wrap">
+            @foreach (var profile in DemoProfiles)
+            {
+                <button class="btn btn-primary" @onclick="() => SignInAsync(profile)">
+                    Continue as @profile.DisplayName
+                </button>
+            }
+        </div>
+    }
 </div>
+
+@code {
+    private string? errorMessage;
+    private bool isRestored;
+
+    private static readonly DemoProfile[] DemoProfiles =
+    [
+        new(Guid.Parse("22222222-2222-2222-2222-222222222222"), "Lena")
+    ];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || isRestored)
+        {
+            return;
+        }
+
+        isRestored = true;
+
+        try
+        {
+            var result = await LocalStorage.GetAsync<StoredAuthState>(RadioPulse.Web.Services.DemoAuthSession.StorageKey);
+            if (result.Success && result.Value is not null && !string.IsNullOrWhiteSpace(result.Value.AccessToken))
+            {
+                DemoAuthSession.SignIn(result.Value.UserId, result.Value.DisplayName, result.Value.AccessToken);
+                StateHasChanged();
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // JS interop may be unavailable during prerender.
+        }
+    }
+
+    private async Task SignInAsync(DemoProfile profile)
+    {
+        errorMessage = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("RadioPulse.Api");
+            var tokenResponse = await client.GetFromJsonAsync<TokenResponse>($"/api/auth/dev-token/{profile.UserId}");
+            if (string.IsNullOrWhiteSpace(tokenResponse?.AccessToken))
+            {
+                errorMessage = "Token endpoint returned an empty response.";
+                return;
+            }
+
+            DemoAuthSession.SignIn(profile.UserId, profile.DisplayName, tokenResponse.AccessToken);
+            await LocalStorage.SetAsync(
+                RadioPulse.Web.Services.DemoAuthSession.StorageKey,
+                new StoredAuthState(profile.UserId, profile.DisplayName, tokenResponse.AccessToken));
+            NavigationManager.NavigateTo("/engagement");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to sign in: {ex.Message}";
+        }
+    }
+
+    private async Task SignOut()
+    {
+        errorMessage = null;
+        DemoAuthSession.SignOut();
+        await LocalStorage.DeleteAsync(RadioPulse.Web.Services.DemoAuthSession.StorageKey);
+    }
+
+    private sealed record DemoProfile(Guid UserId, string DisplayName);
+    private sealed record StoredAuthState(Guid UserId, string DisplayName, string AccessToken);
+
+    private sealed class TokenResponse
+    {
+        [JsonPropertyName("access_token")]
+        public string AccessToken { get; set; } = string.Empty;
+    }
+}

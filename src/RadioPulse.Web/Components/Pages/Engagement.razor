@@ -1,16 +1,33 @@
 @page "/engagement"
+@using System.Net.Http.Headers
 @using Microsoft.AspNetCore.SignalR.Client
-@using System.Text.Json.Serialization
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject IHttpClientFactory HttpClientFactory
+@inject IConfiguration Configuration
+@inject IWebHostEnvironment HostEnvironment
+@inject ProtectedLocalStorage LocalStorage
+@inject RadioPulse.Web.Services.DemoAuthSession DemoAuthSession
 @implements IAsyncDisposable
 
 <PageTitle>Live Engagement</PageTitle>
 
 <h1>Live Poll and Shoutouts</h1>
 
-@if (!isConnected)
+@if (!string.IsNullOrWhiteSpace(statusMessage))
 {
-    <p><em>Connecting to engagement hub...</em></p>
+    <div class="alert alert-info">@statusMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (!DemoAuthSession.IsAuthenticated)
+{
+    <div class="alert alert-warning">
+        Sign in on the <a href="/auth">Auth</a> page to vote, create polls, and send shoutouts.
+    </div>
 }
 
 <div class="row g-4">
@@ -25,15 +42,15 @@
             {
                 <p>@activePoll.Question</p>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-primary" @onclick="VoteTrackAAsync">Vote Track A</button>
-                    <button class="btn btn-outline-primary" @onclick="VoteTrackBAsync">Vote Track B</button>
+                    <button class="btn btn-primary" @onclick="VoteTrackAAsync" disabled="@(!CanWrite)">Vote Track A</button>
+                    <button class="btn btn-outline-primary" @onclick="VoteTrackBAsync" disabled="@(!CanWrite)">Vote Track B</button>
                 </div>
             }
 
             <hr />
             <h6>Create Poll</h6>
             <input class="form-control mb-2" @bind="newPollQuestion" placeholder="Ask listeners..." />
-            <button class="btn btn-dark" @onclick="CreatePollAsync">Create</button>
+            <button class="btn btn-dark" @onclick="CreatePollAsync" disabled="@(!CanWrite)">Create</button>
         </div>
     </div>
 
@@ -43,7 +60,7 @@
             <div class="mb-2">
                 <input class="form-control" @bind="newShoutout" placeholder="Send a shoutout..." />
             </div>
-            <button class="btn btn-success mb-3" @onclick="SendShoutoutAsync">Send</button>
+            <button class="btn btn-success mb-3" @onclick="SendShoutoutAsync" disabled="@(!CanWrite)">Send</button>
 
             @if (shoutouts.Count == 0)
             {
@@ -64,28 +81,95 @@
 
 @code {
     private static readonly Guid DemoShowId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-    private static readonly Guid DemoUserId = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
     private HubConnection? hubConnection;
     private PollDto? activePoll;
     private List<ShoutoutDto> shoutouts = new();
-    private bool isConnected;
     private string newPollQuestion = "What should play next?";
     private string newShoutout = string.Empty;
-    private string accessToken = string.Empty;
+    private string? errorMessage;
+    private string? statusMessage;
+    private bool attemptedAuthRestore;
+
+    private bool CanWrite => DemoAuthSession.IsAuthenticated;
 
     protected override async Task OnInitializedAsync()
     {
-        var api = HttpClientFactory.CreateClient("radio-api");
-        var tokenResponse = await api.GetFromJsonAsync<TokenResponse>($"/api/auth/dev-token/{DemoUserId}");
-        accessToken = tokenResponse?.AccessToken ?? string.Empty;
-        activePoll = await api.GetFromJsonAsync<PollDto>("/api/polls/active");
-        shoutouts = await api.GetFromJsonAsync<List<ShoutoutDto>>("/api/shoutouts") ?? new List<ShoutoutDto>();
+        await LoadInitialStateAsync();
+        if (DemoAuthSession.IsAuthenticated)
+        {
+            await EnsureHubConnectedAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || attemptedAuthRestore || DemoAuthSession.IsAuthenticated)
+        {
+            return;
+        }
+
+        attemptedAuthRestore = true;
+        try
+        {
+            var result = await LocalStorage.GetAsync<StoredAuthState>(RadioPulse.Web.Services.DemoAuthSession.StorageKey);
+            if (result.Success && result.Value is not null && !string.IsNullOrWhiteSpace(result.Value.AccessToken))
+            {
+                DemoAuthSession.SignIn(result.Value.UserId, result.Value.DisplayName, result.Value.AccessToken);
+                await EnsureHubConnectedAsync();
+                StateHasChanged();
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // JS interop may be unavailable during prerender.
+        }
+    }
+
+    private async Task LoadInitialStateAsync()
+    {
+        try
+        {
+            var api = HttpClientFactory.CreateClient("RadioPulse.Api");
+            var pollResponse = await api.GetAsync("/api/polls/active");
+            activePoll = pollResponse.IsSuccessStatusCode
+                ? await pollResponse.Content.ReadFromJsonAsync<PollDto>()
+                : null;
+            shoutouts = await api.GetFromJsonAsync<List<ShoutoutDto>>("/api/shoutouts") ?? [];
+            statusMessage = "Connected to API.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load engagement state: {ex.Message}";
+        }
+    }
+
+    private async Task ConnectHubAsync()
+    {
+        if (hubConnection?.State is HubConnectionState.Connected or HubConnectionState.Connecting)
+        {
+            return;
+        }
+
+        var hubUrl = $"{ResolveApiBaseUrl()}/hubs/engagement";
 
         hubConnection = new HubConnectionBuilder()
-            .WithUrl("http://api/hubs/engagement", options =>
+            .WithUrl(hubUrl, options =>
             {
-                options.AccessTokenProvider = () => Task.FromResult<string?>(accessToken);
+                options.AccessTokenProvider = () => Task.FromResult<string?>(DemoAuthSession.AccessToken);
+                if (IsDevelopment())
+                {
+                    options.HttpMessageHandlerFactory = handler =>
+                    {
+                        if (handler is HttpClientHandler clientHandler)
+                        {
+                            clientHandler.ServerCertificateCustomValidationCallback =
+                                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+                        }
+
+                        return handler;
+                    };
+                }
             })
             .WithAutomaticReconnect()
             .Build();
@@ -93,58 +177,157 @@
         hubConnection.On<PollDto>("PollCreated", poll =>
         {
             activePoll = poll;
-            StateHasChanged();
+            InvokeAsync(StateHasChanged);
         });
 
         hubConnection.On<ShoutoutDto>("ShoutoutReceived", shoutout =>
         {
             shoutouts.Insert(0, shoutout);
-            StateHasChanged();
+            InvokeAsync(StateHasChanged);
         });
 
-        await hubConnection.StartAsync();
-        isConnected = true;
+        try
+        {
+            await hubConnection.StartAsync();
+            statusMessage = "Real-time channel online.";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = "Real-time channel unavailable. Using HTTP fallback.";
+            errorMessage = ex.Message;
+        }
+    }
+
+    private Task EnsureHubConnectedAsync()
+    {
+        return ConnectHubAsync();
     }
 
     private async Task CreatePollAsync()
     {
-        if (hubConnection is null || string.IsNullOrWhiteSpace(newPollQuestion))
+        if (!CanWrite || string.IsNullOrWhiteSpace(newPollQuestion))
         {
             return;
         }
 
-        await hubConnection.SendAsync("CreatePoll", DemoShowId, newPollQuestion);
+        await ExecuteWriteAsync(
+            async () =>
+            {
+                if (hubConnection?.State == HubConnectionState.Connected)
+                {
+                    await hubConnection.SendAsync("CreatePoll", DemoShowId, newPollQuestion);
+                    return;
+                }
+
+                var api = CreateAuthorizedApiClient();
+                await PostAsJsonAndEnsureSuccessAsync(api, "/api/polls", new { ShowId = DemoShowId, Question = newPollQuestion });
+                await LoadInitialStateAsync();
+            },
+            "Poll created.");
     }
+
+    private Task VoteTrackAAsync() => VoteAsync("Track A");
+    private Task VoteTrackBAsync() => VoteAsync("Track B");
 
     private async Task VoteAsync(string choice)
     {
-        if (hubConnection is null || activePoll is null)
+        if (!CanWrite || activePoll is null)
         {
             return;
         }
 
-        await hubConnection.SendAsync("Vote", activePoll.Id, DemoUserId, choice);
-    }
+        await ExecuteWriteAsync(
+            async () =>
+            {
+                if (hubConnection?.State == HubConnectionState.Connected)
+                {
+                    await hubConnection.SendAsync("Vote", activePoll.Id, DemoAuthSession.UserId, choice);
+                    return;
+                }
 
-    private Task VoteTrackAAsync()
-    {
-        return VoteAsync("Track A");
-    }
-
-    private Task VoteTrackBAsync()
-    {
-        return VoteAsync("Track B");
+                var api = CreateAuthorizedApiClient();
+                await PostAsJsonAndEnsureSuccessAsync(api, "/api/polls/votes", new { PollId = activePoll.Id, UserId = DemoAuthSession.UserId, Choice = choice });
+            },
+            "Vote submitted.");
     }
 
     private async Task SendShoutoutAsync()
     {
-        if (hubConnection is null || string.IsNullOrWhiteSpace(newShoutout))
+        if (!CanWrite || string.IsNullOrWhiteSpace(newShoutout))
         {
             return;
         }
 
-        await hubConnection.SendAsync("SendShoutout", DemoUserId, newShoutout);
-        newShoutout = string.Empty;
+        var message = newShoutout.Trim();
+        await ExecuteWriteAsync(
+            async () =>
+            {
+                if (hubConnection?.State == HubConnectionState.Connected)
+                {
+                    await hubConnection.SendAsync("SendShoutout", DemoAuthSession.UserId, message);
+                }
+                else
+                {
+                    var api = CreateAuthorizedApiClient();
+                    await PostAsJsonAndEnsureSuccessAsync(api, "/api/shoutouts", new { UserId = DemoAuthSession.UserId, Message = message });
+                    await LoadInitialStateAsync();
+                }
+
+                newShoutout = string.Empty;
+            },
+            "Shoutout sent.");
+    }
+
+    private async Task ExecuteWriteAsync(Func<Task> operation, string successStatus)
+    {
+        errorMessage = null;
+        statusMessage = null;
+        try
+        {
+            await operation();
+            statusMessage = successStatus;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private HttpClient CreateAuthorizedApiClient()
+    {
+        var client = HttpClientFactory.CreateClient("RadioPulse.Api");
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", DemoAuthSession.AccessToken);
+        return client;
+    }
+
+    private static async Task PostAsJsonAndEnsureSuccessAsync(HttpClient client, string url, object payload)
+    {
+        using var response = await client.PostAsJsonAsync(url, payload);
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var body = await response.Content.ReadAsStringAsync();
+        throw new InvalidOperationException(
+            $"API call failed ({(int)response.StatusCode} {response.StatusCode}). {body}");
+    }
+
+    private string ResolveApiBaseUrl()
+    {
+        var candidate =
+            Configuration["services:api:https:0"]
+            ?? Configuration["services__api__https__0"]
+            ?? Configuration["services:api:http:0"]
+            ?? Configuration["services__api__http__0"];
+
+        return string.IsNullOrWhiteSpace(candidate) ? "https://localhost:7189" : candidate.TrimEnd('/');
+    }
+
+    private bool IsDevelopment()
+    {
+        return HostEnvironment.IsDevelopment();
     }
 
     public async ValueTask DisposeAsync()
@@ -167,9 +350,5 @@
         public DateTimeOffset CreatedAtUtc { get; set; }
     }
 
-    private sealed class TokenResponse
-    {
-        [JsonPropertyName("access_token")]
-        public string AccessToken { get; set; } = string.Empty;
-    }
+    private sealed record StoredAuthState(Guid UserId, string DisplayName, string AccessToken);
 }

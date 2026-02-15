@@ -8,11 +8,16 @@
 
 <p>Live response from <code>RadioPulse.Api</code> discovered through Aspire.</p>
 
-@if (forecasts is null)
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (forecasts is null && string.IsNullOrWhiteSpace(errorMessage))
 {
     <p><em>Loading from API...</em></p>
 }
-else
+else if (forecasts is not null)
 {
     <table class="table">
         <thead>
@@ -39,11 +44,19 @@ else
 
 @code {
     private WeatherForecast[]? forecasts;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        var client = HttpClientFactory.CreateClient("radio-api");
-        forecasts = await client.GetFromJsonAsync<WeatherForecast[]>("/api/weatherforecast");
+        try
+        {
+            var client = HttpClientFactory.CreateClient("RadioPulse.Api");
+            forecasts = await client.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"API probe failed: {ex.Message}";
+        }
     }
 
     private sealed class WeatherForecast

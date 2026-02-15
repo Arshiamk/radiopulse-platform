@@ -1,13 +1,24 @@
 @page "/recommendations"
 @inject IHttpClientFactory HttpClientFactory
+@inject RadioPulse.Web.Services.DemoAuthSession DemoAuthSession
 
 <PageTitle>Recommendations</PageTitle>
 
 <h1>Recommended For You</h1>
+<p class="text-muted">Profile: @(DemoAuthSession.IsAuthenticated ? DemoAuthSession.DisplayName : "Guest demo user")</p>
 
-@if (recommendations.Count == 0)
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (isLoading)
 {
     <p><em>Loading recommendations...</em></p>
+}
+else if (recommendations.Count == 0)
+{
+    <div class="alert alert-warning">No recommendations are available yet.</div>
 }
 else
 {
@@ -22,12 +33,28 @@ else
 @code {
     private static readonly Guid DemoUserId = Guid.Parse("22222222-2222-2222-2222-222222222222");
     private List<RecommendationDto> recommendations = new();
+    private string? errorMessage;
+    private bool isLoading = true;
+    private Guid userId;
 
     protected override async Task OnInitializedAsync()
     {
-        var client = HttpClientFactory.CreateClient("radio-api");
-        recommendations = await client.GetFromJsonAsync<List<RecommendationDto>>($"/api/recommendations/{DemoUserId}")
-            ?? new List<RecommendationDto>();
+        userId = DemoAuthSession.IsAuthenticated ? DemoAuthSession.UserId : DemoUserId;
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("RadioPulse.Api");
+            recommendations = await client.GetFromJsonAsync<List<RecommendationDto>>($"/api/recommendations/{userId}")
+                ?? new List<RecommendationDto>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to load recommendations: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private sealed class RecommendationDto

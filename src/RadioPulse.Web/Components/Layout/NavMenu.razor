@@ -1,6 +1,12 @@
+@inject RadioPulse.Web.Services.DemoAuthSession DemoAuthSession
+
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">RadioPulse</a>
+        @if (DemoAuthSession.IsAuthenticated)
+        {
+            <span class="text-light small">Live as @DemoAuthSession.DisplayName</span>
+        }
     </div>
 </div>
 
@@ -41,6 +47,12 @@
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="weather">
                 <span class="bi bi-broadcast-pin-nav-menu" aria-hidden="true"></span> API Probe
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="diagnostics">
+                <span class="bi bi-activity-nav-menu" aria-hidden="true"></span> Diagnostics
             </NavLink>
         </div>
     </nav>

@@ -1,0 +1,202 @@
+@page "/diagnostics"
+@using System.Net.Http.Headers
+@using System.Text.Json.Serialization
+@inject IHttpClientFactory HttpClientFactory
+@inject IConfiguration Configuration
+
+<PageTitle>Diagnostics</PageTitle>
+
+<h1>System Diagnostics</h1>
+
+<p>Runs core health checks for API, auth, and write operations.</p>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="RunChecksAsync" disabled="@isRunning">Run Checks</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(summary))
+{
+    <div class="alert @(failedCount == 0 ? "alert-success" : "alert-warning")">@summary</div>
+}
+
+<table class="table table-sm">
+    <thead>
+        <tr>
+            <th>Check</th>
+            <th>Status</th>
+            <th>Detail</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var check in checks)
+        {
+            <tr>
+                <td>@check.Name</td>
+                <td>
+                    @if (check.Success == true)
+                    {
+                        <span class="badge bg-success">PASS</span>
+                    }
+                    else if (check.Success is null)
+                    {
+                        <span class="badge bg-secondary">SKIP</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">FAIL</span>
+                    }
+                </td>
+                <td>@check.Detail</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private static readonly Guid DemoUserId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+
+    private readonly List<DiagnosticCheck> checks = [];
+    private bool isRunning;
+    private string? summary;
+    private int failedCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RunChecksAsync();
+    }
+
+    private async Task RunChecksAsync()
+    {
+        isRunning = true;
+        failedCount = 0;
+        summary = null;
+        checks.Clear();
+
+        var api = HttpClientFactory.CreateClient("RadioPulse.Api");
+
+        await AddGetCheckAsync(api, "API status", "/api/status");
+        await AddGetCheckAsync(api, "Shows endpoint", "/api/shows");
+        await AddGetCheckAsync(api, "Now playing endpoint", "/api/now-playing");
+        await AddGetCheckAsync(api, "Recommendations endpoint", $"/api/recommendations/{DemoUserId}");
+
+        var token = await GetTokenAsync(api);
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            AddFail("Auth token endpoint", "No token returned.");
+        }
+        else
+        {
+            AddPass("Auth token endpoint", "Token issued.");
+            await AddAuthorizedPostCheckAsync(
+                api,
+                "Authorized shoutout write",
+                "/api/shoutouts",
+                new { UserId = DemoUserId, Message = "Diagnostics ping" },
+                token);
+        }
+
+        var hubUrl = ResolveHubUrl();
+        if (string.IsNullOrWhiteSpace(hubUrl))
+        {
+            AddFail("Hub URL resolution", "Unable to resolve API hub URL.");
+        }
+        else
+        {
+            AddPass("Hub URL resolution", hubUrl);
+        }
+
+        summary = failedCount == 0
+            ? $"All {checks.Count} checks passed."
+            : $"{failedCount} of {checks.Count} checks failed.";
+        isRunning = false;
+    }
+
+    private async Task AddGetCheckAsync(HttpClient client, string name, string path)
+    {
+        try
+        {
+            using var response = await client.GetAsync(path);
+            if (response.IsSuccessStatusCode)
+            {
+                AddPass(name, $"HTTP {(int)response.StatusCode}");
+            }
+            else
+            {
+                AddFail(name, $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddFail(name, ex.Message);
+        }
+    }
+
+    private async Task<string?> GetTokenAsync(HttpClient client)
+    {
+        try
+        {
+            var token = await client.GetFromJsonAsync<TokenResponse>($"/api/auth/dev-token/{DemoUserId}");
+            return token?.AccessToken;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task AddAuthorizedPostCheckAsync(HttpClient client, string name, string path, object payload, string token)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, path)
+            {
+                Content = JsonContent.Create(payload)
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            using var response = await client.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                AddPass(name, $"HTTP {(int)response.StatusCode}");
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                AddFail(name, $"HTTP {(int)response.StatusCode}. {body}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddFail(name, ex.Message);
+        }
+    }
+
+    private string? ResolveHubUrl()
+    {
+        var baseUrl =
+            Configuration["services:api:https:0"]
+            ?? Configuration["services__api__https__0"]
+            ?? Configuration["services:api:http:0"]
+            ?? Configuration["services__api__http__0"];
+
+        return string.IsNullOrWhiteSpace(baseUrl) ? null : $"{baseUrl.TrimEnd('/')}/hubs/engagement";
+    }
+
+    private void AddPass(string name, string detail)
+    {
+        checks.Add(new DiagnosticCheck(name, true, detail));
+    }
+
+    private void AddFail(string name, string detail)
+    {
+        failedCount++;
+        checks.Add(new DiagnosticCheck(name, false, detail));
+    }
+
+    private sealed record DiagnosticCheck(string Name, bool? Success, string Detail);
+
+    private sealed class TokenResponse
+    {
+        [JsonPropertyName("access_token")]
+        public string AccessToken { get; set; } = string.Empty;
+    }
+}

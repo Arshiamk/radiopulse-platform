@@ -74,12 +74,24 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
 
 ## How To Run Locally (Aspire)
 1. Install `.NET SDK 10.0.103`.
-2. Start stack:
+2. If you see `UntrustedRoot` for localhost HTTPS:
+   - close all browser windows
+   - run `scripts/devcert.ps1`
+   - restart AppHost
+3. Start stack:
    - `dotnet run --project src/RadioPulse.AppHost/RadioPulse.AppHost.csproj`
-3. Open Aspire dashboard and launch `web`.
-4. Validate:
+4. Open Aspire dashboard and launch `web`.
+5. Validate:
    - `dotnet build src/RadioPulse.slnx -c Debug`
    - `dotnet test src/RadioPulse.slnx -c Debug`
+6. Demo flow in web:
+   - open `/weather` to verify API probe
+   - open `/diagnostics` and run checks (all should pass)
+   - open `/auth` and sign in as `Lena`
+   - open `/engagement` to create polls/votes/shoutouts
+   - open `/media` and `/recommendations` to verify content and signed-in personalization
+7. Optional automated smoke validation:
+   - `powershell -ExecutionPolicy Bypass -File .\scripts\smoke.ps1 -Configuration Debug`
 
 ## How To Run With Docker
 1. Build and start:
@@ -111,9 +123,11 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
 ## CI/CD
 - `ci.yml`:
   - restore/build/test
+  - web + api integration tests
   - format check
   - docker build validation
 - `cd.yml` (main):
+  - release validation (restore/build/test + smoke)
   - buildx + push images to GHCR
 
 ## MAUI Notes
@@ -129,6 +143,7 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
 - `src/RadioPulse.ServiceDefaults`
 - `src/RadioPulse.Api`
 - `src/RadioPulse.Web`
+- `src/RadioPulse.Web.Tests`
 - `src/RadioPulse.Worker`
 - `src/RadioPulse.Ml`
 - `src/RadioPulse.Mobile`
