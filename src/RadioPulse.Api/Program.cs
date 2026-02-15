@@ -193,6 +193,25 @@ app.MapGet("/api/shoutouts", async (IRadioPulseService service, CancellationToke
     await service.GetLatestShoutoutsAsync(50, cancellationToken))
 .RequireRateLimiting("public");
 
+app.MapGet("/api/transcripts/top-moments", async (RadioPulseDbContext dbContext, CancellationToken cancellationToken) =>
+    await dbContext.Transcripts
+        .OrderByDescending(x => x.CreatedAtUtc)
+        .Select(x => new { x.EpisodeId, x.Summary, x.CreatedAtUtc })
+        .Take(10)
+        .ToListAsync(cancellationToken))
+.RequireRateLimiting("public");
+
+app.MapGet("/api/transcripts/search", async (string term, RadioPulseDbContext dbContext, CancellationToken cancellationToken) =>
+{
+    var normalized = term.Trim();
+    return await dbContext.Transcripts
+        .Where(x => x.FullText != null && x.FullText.Contains(normalized))
+        .Select(x => new { x.EpisodeId, x.FullText, x.Summary })
+        .Take(20)
+        .ToListAsync(cancellationToken);
+})
+.RequireRateLimiting("public");
+
 app.MapPost("/api/shoutouts", async ([FromBody] CreateShoutoutRequest request, IRadioPulseService service, CancellationToken cancellationToken) =>
 {
     if (request.UserId == Guid.Empty || string.IsNullOrWhiteSpace(request.Message) || request.Message.Length > 280)

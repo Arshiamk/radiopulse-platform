@@ -49,10 +49,35 @@ else
     </div>
 </div>
 
+<div class="card p-3 mt-4">
+    <h5>AI Top Moments</h5>
+    <ul>
+        @foreach (var moment in topMoments)
+        {
+            <li>@moment.Summary</li>
+        }
+    </ul>
+
+    <h6 class="mt-3">Search Transcript</h6>
+    <div class="d-flex gap-2">
+        <input class="form-control" @bind="searchTerm" placeholder="Search transcript text..." />
+        <button class="btn btn-secondary" @onclick="SearchAsync">Search</button>
+    </div>
+    <ul class="mt-3">
+        @foreach (var row in searchResults)
+        {
+            <li>@row.Summary</li>
+        }
+    </ul>
+</div>
+
 @code {
     private EpisodeDto? nowPlaying;
     private List<ShowDto> shows = new();
     private List<EpisodeDto> episodes = new();
+    private List<MomentDto> topMoments = new();
+    private List<MomentDto> searchResults = new();
+    private string searchTerm = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,6 +85,20 @@ else
         nowPlaying = await client.GetFromJsonAsync<EpisodeDto>("/api/now-playing");
         shows = await client.GetFromJsonAsync<List<ShowDto>>("/api/shows") ?? new List<ShowDto>();
         episodes = await client.GetFromJsonAsync<List<EpisodeDto>>("/api/episodes") ?? new List<EpisodeDto>();
+        topMoments = await client.GetFromJsonAsync<List<MomentDto>>("/api/transcripts/top-moments") ?? new List<MomentDto>();
+    }
+
+    private async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            searchResults = new List<MomentDto>();
+            return;
+        }
+
+        var client = HttpClientFactory.CreateClient("radio-api");
+        searchResults = await client.GetFromJsonAsync<List<MomentDto>>($"/api/transcripts/search?term={Uri.EscapeDataString(searchTerm)}")
+            ?? new List<MomentDto>();
     }
 
     private sealed class ShowDto
@@ -75,5 +114,10 @@ else
         public string Title { get; set; } = string.Empty;
         public string? AudioUrl { get; set; }
         public DateTimeOffset PublishedAtUtc { get; set; }
+    }
+
+    private sealed class MomentDto
+    {
+        public string? Summary { get; set; }
     }
 }
