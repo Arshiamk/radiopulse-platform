@@ -121,9 +121,18 @@ else
             return;
         }
 
-        var client = HttpClientFactory.CreateClient("RadioPulse.Api");
-        searchResults = await client.GetFromJsonAsync<List<MomentDto>>($"/api/transcripts/search?term={Uri.EscapeDataString(searchTerm)}")
-            ?? new List<MomentDto>();
+        try
+        {
+            var client = HttpClientFactory.CreateClient("RadioPulse.Api");
+            searchResults = await client.GetFromJsonAsync<List<MomentDto>>($"/api/transcripts/search?term={Uri.EscapeDataString(searchTerm)}")
+                ?? new List<MomentDto>();
+            errorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            searchResults = new List<MomentDto>();
+            errorMessage = $"Transcript search failed: {ex.Message}";
+        }
     }
 
     private sealed class ShowDto

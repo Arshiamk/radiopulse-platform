@@ -142,6 +142,7 @@ try {
     Invoke-Check -Name "Web engagement page" -Url "$resolvedWebUrl/engagement" | Out-Null
     Invoke-Check -Name "Web media page" -Url "$resolvedWebUrl/media" | Out-Null
     Invoke-Check -Name "Web diagnostics page" -Url "$resolvedWebUrl/diagnostics" | Out-Null
+    Invoke-Check -Name "Web favicon" -Url "$resolvedWebUrl/favicon.ico" | Out-Null
 
     $tokenJson = Invoke-Check -Name "Dev token" -Url "$resolvedApiUrl/api/auth/dev-token/22222222-2222-2222-2222-222222222222"
     $token = ($tokenJson | ConvertFrom-Json).access_token

@@ -25,6 +25,11 @@ public sealed class WebPageSmokeTests : IClassFixture<WebAppFactory>
 
         var html = await response.Content.ReadAsStringAsync();
         Assert.Contains(expectedText, html);
+
+        if (route == "/auth")
+        {
+            Assert.Contains("Continue as Luna", html);
+        }
     }
 }
 
