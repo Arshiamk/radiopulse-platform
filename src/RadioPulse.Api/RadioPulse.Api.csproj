@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RadioPulse.Domain\RadioPulse.Domain.csproj" />
+    <ProjectReference Include="..\RadioPulse.Ml\RadioPulse.Ml.csproj" />
     <ProjectReference Include="..\RadioPulse.ServiceDefaults\RadioPulse.ServiceDefaults.csproj" />
   </ItemGroup>
 

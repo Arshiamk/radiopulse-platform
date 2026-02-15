@@ -21,3 +21,4 @@
 12. PHASE 4 media UX is centered on `/api/now-playing`, `/api/shows`, and `/api/episodes` to support both Web and MAUI clients.
 13. PHASE 5 uses JWT bearer auth with a local dev token endpoint, auth-protected write operations, and fixed-window rate limiting on public reads.
 14. Worker supports `UseAzureAi=true` for Azure-backed transcript/summary generation and defaults to deterministic `FakeAzureAiProvider` locally.
+15. Recommendations use an ML.NET regression model persisted to `models/recommendations.zip` and trained automatically on startup when absent.

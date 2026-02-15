@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using RadioPulse.Api.Data;
 using RadioPulse.Api.Hubs;
 using RadioPulse.Api.Services;
+using RadioPulse.Ml.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +72,7 @@ var postgresConnection = builder.Configuration.GetConnectionString("radiopulsedb
 
 builder.Services.AddDbContext<RadioPulseDbContext>(options => options.UseNpgsql(postgresConnection));
 builder.Services.AddScoped<IRadioPulseService, RadioPulseService>();
+builder.Services.AddSingleton<RecommendationEngine>();
 
 var app = builder.Build();
 
@@ -100,8 +102,11 @@ app.MapDefaultEndpoints();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<RadioPulseDbContext>();
+    var recommendationEngine = scope.ServiceProvider.GetRequiredService<RecommendationEngine>();
     dbContext.Database.Migrate();
     await SeedData.EnsureSeededAsync(dbContext, CancellationToken.None);
+    var modelPath = Path.Combine(AppContext.BaseDirectory, "models", "recommendations.zip");
+    recommendationEngine.EnsureModel(modelPath, await dbContext.ListenEvents.ToListAsync());
 }
 
 app.MapGet("/api/status", () => Results.Ok(new
@@ -209,6 +214,14 @@ app.MapGet("/api/transcripts/search", async (string term, RadioPulseDbContext db
         .Select(x => new { x.EpisodeId, x.FullText, x.Summary })
         .Take(20)
         .ToListAsync(cancellationToken);
+})
+.RequireRateLimiting("public");
+
+app.MapGet("/api/recommendations/{userId:guid}", async (Guid userId, RadioPulseDbContext dbContext, RecommendationEngine recommendationEngine, CancellationToken cancellationToken) =>
+{
+    var stations = await dbContext.Stations.OrderBy(x => x.Name).ToListAsync(cancellationToken);
+    var recommendations = recommendationEngine.Recommend(userId, stations);
+    return Results.Ok(recommendations);
 })
 .RequireRateLimiting("public");
 
