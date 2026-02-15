@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore src/RadioPulse.slnx
+      - name: Build
+        run: dotnet build src/RadioPulse.slnx -c Release --no-restore
+      - name: Test
+        run: dotnet test src/RadioPulse.slnx -c Release --no-build
+      - name: Format Check
+        run: dotnet format src/RadioPulse.slnx --verify-no-changes
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API Image
+        run: docker build -f src/RadioPulse.Api/Dockerfile -t radiopulse-api:ci .
+      - name: Build Web Image
+        run: docker build -f src/RadioPulse.Web/Dockerfile -t radiopulse-web:ci .
+      - name: Build Worker Image
+        run: docker build -f src/RadioPulse.Worker/Dockerfile -t radiopulse-worker:ci .

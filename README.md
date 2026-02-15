@@ -12,7 +12,7 @@ RadioPulse is a Europe-wide commercial radio platform demo built with `.NET 10`,
 - [x] Phase 6 - Azure AI integration with local stub
 - [x] Phase 7 - ML.NET recommendations
 - [x] Phase 8 - .NET MAUI app
-- [ ] Phase 9 - Docker, K8s, CI/CD
+- [x] Phase 9 - Docker, K8s, CI/CD
 - [ ] Phase 10 - Polish and demos
 
 ## Repository Layout

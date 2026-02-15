@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: radiopulse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/OWNER/radiopulse-api:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ConnectionStrings__radiopulsedb
+              value: Host=postgres;Port=5432;Database=radiopulsedb;Username=postgres;Password=postgres
+            - name: ConnectionStrings__redis
+              value: redis:6379
+            - name: Auth__Key
+              value: radiopulse-dev-signing-key-please-change
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: radiopulse
+spec:
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

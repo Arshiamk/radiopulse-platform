@@ -23,3 +23,4 @@
 14. Worker supports `UseAzureAi=true` for Azure-backed transcript/summary generation and defaults to deterministic `FakeAzureAiProvider` locally.
 15. Recommendations use an ML.NET regression model persisted to `models/recommendations.zip` and trained automatically on startup when absent.
 16. MAUI app is implemented and build-targeted to Windows (`net10.0-windows10.0.19041.0`) in this environment to keep CI builds deterministic without Android SDK setup.
+17. Containerization is standardized with per-service Dockerfiles plus `docker-compose.yml`, and deployment manifests use a minimal Kustomize base under `k8s/base`.

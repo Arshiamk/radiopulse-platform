@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: radiopulse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/OWNER/radiopulse-worker:latest
+          env:
+            - name: ConnectionStrings__radiopulsedb
+              value: Host=postgres;Port=5432;Database=radiopulsedb;Username=postgres;Password=postgres
+            - name: ConnectionStrings__redis
+              value: redis:6379
+            - name: UseAzureAi
+              value: "false"
