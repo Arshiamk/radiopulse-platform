@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using RadioPulse.Api.Data;
+using RadioPulse.Api.Hubs;
 using RadioPulse.Api.Services;
-using RadioPulse.Domain;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.Services.AddOpenApi();
+builder.Services.AddSignalR();
 
 var postgresConnection = builder.Configuration.GetConnectionString("radiopulsedb")
     ?? builder.Configuration.GetConnectionString("postgres")
@@ -35,7 +36,7 @@ using (var scope = app.Services.CreateScope())
 app.MapGet("/api/status", () => Results.Ok(new
 {
     Service = "RadioPulse.Api",
-    Version = "phase-2",
+    Version = "phase-3",
     UtcNow = DateTimeOffset.UtcNow
 }));
 
@@ -54,4 +55,31 @@ app.MapGet("/api/polls/active", async (IRadioPulseService service, CancellationT
     return poll is null ? Results.NotFound() : Results.Ok(poll);
 });
 
+app.MapPost("/api/polls", async (CreatePollRequest request, IRadioPulseService service, CancellationToken cancellationToken) =>
+{
+    var poll = await service.CreatePollAsync(request.ShowId, request.Question, cancellationToken);
+    return Results.Ok(poll);
+});
+
+app.MapPost("/api/polls/votes", async (CreateVoteRequest request, IRadioPulseService service, CancellationToken cancellationToken) =>
+{
+    var vote = await service.CreateVoteAsync(request.PollId, request.UserId, request.Choice, cancellationToken);
+    return Results.Ok(vote);
+});
+
+app.MapGet("/api/shoutouts", async (IRadioPulseService service, CancellationToken cancellationToken) =>
+    await service.GetLatestShoutoutsAsync(50, cancellationToken));
+
+app.MapPost("/api/shoutouts", async (CreateShoutoutRequest request, IRadioPulseService service, CancellationToken cancellationToken) =>
+{
+    var shoutout = await service.CreateShoutoutAsync(request.UserId, request.Message, cancellationToken);
+    return Results.Ok(shoutout);
+});
+
+app.MapHub<EngagementHub>("/hubs/engagement");
+
 app.Run();
+
+public sealed record CreatePollRequest(Guid ShowId, string Question);
+public sealed record CreateVoteRequest(Guid PollId, Guid UserId, string Choice);
+public sealed record CreateShoutoutRequest(Guid UserId, string Message);

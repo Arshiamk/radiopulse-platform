@@ -1,0 +1,162 @@
+@page "/engagement"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject IHttpClientFactory HttpClientFactory
+@implements IAsyncDisposable
+
+<PageTitle>Live Engagement</PageTitle>
+
+<h1>Live Poll and Shoutouts</h1>
+
+@if (!isConnected)
+{
+    <p><em>Connecting to engagement hub...</em></p>
+}
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5>Current Poll</h5>
+            @if (activePoll is null)
+            {
+                <p>No active poll.</p>
+            }
+            else
+            {
+                <p>@activePoll.Question</p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" @onclick="VoteTrackAAsync">Vote Track A</button>
+                    <button class="btn btn-outline-primary" @onclick="VoteTrackBAsync">Vote Track B</button>
+                </div>
+            }
+
+            <hr />
+            <h6>Create Poll</h6>
+            <input class="form-control mb-2" @bind="newPollQuestion" placeholder="Ask listeners..." />
+            <button class="btn btn-dark" @onclick="CreatePollAsync">Create</button>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5>Shoutouts</h5>
+            <div class="mb-2">
+                <input class="form-control" @bind="newShoutout" placeholder="Send a shoutout..." />
+            </div>
+            <button class="btn btn-success mb-3" @onclick="SendShoutoutAsync">Send</button>
+
+            @if (shoutouts.Count == 0)
+            {
+                <p>No shoutouts yet.</p>
+            }
+            else
+            {
+                <ul>
+                    @foreach (var shoutout in shoutouts.OrderByDescending(x => x.CreatedAtUtc).Take(12))
+                    {
+                        <li>@shoutout.Message <small class="text-muted">@shoutout.CreatedAtUtc.ToLocalTime()</small></li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly Guid DemoShowId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly Guid DemoUserId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+
+    private HubConnection? hubConnection;
+    private PollDto? activePoll;
+    private List<ShoutoutDto> shoutouts = new();
+    private bool isConnected;
+    private string newPollQuestion = "What should play next?";
+    private string newShoutout = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var api = HttpClientFactory.CreateClient("radio-api");
+        activePoll = await api.GetFromJsonAsync<PollDto>("/api/polls/active");
+        shoutouts = await api.GetFromJsonAsync<List<ShoutoutDto>>("/api/shoutouts") ?? new List<ShoutoutDto>();
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl("http://api/hubs/engagement")
+            .WithAutomaticReconnect()
+            .Build();
+
+        hubConnection.On<PollDto>("PollCreated", poll =>
+        {
+            activePoll = poll;
+            StateHasChanged();
+        });
+
+        hubConnection.On<ShoutoutDto>("ShoutoutReceived", shoutout =>
+        {
+            shoutouts.Insert(0, shoutout);
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+        isConnected = true;
+    }
+
+    private async Task CreatePollAsync()
+    {
+        if (hubConnection is null || string.IsNullOrWhiteSpace(newPollQuestion))
+        {
+            return;
+        }
+
+        await hubConnection.SendAsync("CreatePoll", DemoShowId, newPollQuestion);
+    }
+
+    private async Task VoteAsync(string choice)
+    {
+        if (hubConnection is null || activePoll is null)
+        {
+            return;
+        }
+
+        await hubConnection.SendAsync("Vote", activePoll.Id, DemoUserId, choice);
+    }
+
+    private Task VoteTrackAAsync()
+    {
+        return VoteAsync("Track A");
+    }
+
+    private Task VoteTrackBAsync()
+    {
+        return VoteAsync("Track B");
+    }
+
+    private async Task SendShoutoutAsync()
+    {
+        if (hubConnection is null || string.IsNullOrWhiteSpace(newShoutout))
+        {
+            return;
+        }
+
+        await hubConnection.SendAsync("SendShoutout", DemoUserId, newShoutout);
+        newShoutout = string.Empty;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+    private sealed class PollDto
+    {
+        public Guid Id { get; set; }
+        public string Question { get; set; } = string.Empty;
+    }
+
+    private sealed class ShoutoutDto
+    {
+        public string Message { get; set; } = string.Empty;
+        public DateTimeOffset CreatedAtUtc { get; set; }
+    }
+}

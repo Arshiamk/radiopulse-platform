@@ -14,12 +14,14 @@ public static class SeedData
 
         var station = new Station
         {
+            Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
             Name = "Pulse One Europe",
             Region = "EU"
         };
 
         var morningShow = new Show
         {
+            Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Station = station,
             Title = "Morning Pulse",
             HostName = "Mila Novak",
@@ -29,6 +31,7 @@ public static class SeedData
 
         var driveShow = new Show
         {
+            Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
             Station = station,
             Title = "Drive Europa",
             HostName = "Jonas Weber",
@@ -39,7 +42,12 @@ public static class SeedData
         var users = new[]
         {
             new User { DisplayName = "Demo DJ", Email = "dj@radiopulse.local" },
-            new User { DisplayName = "Lena", Email = "lena@radiopulse.local" },
+            new User
+            {
+                Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                DisplayName = "Lena",
+                Email = "lena@radiopulse.local"
+            },
             new User { DisplayName = "Marco", Email = "marco@radiopulse.local" }
         };
 

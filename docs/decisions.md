@@ -17,3 +17,4 @@
 8. Blazor Web includes an explicit phase-1 auth placeholder page (`/auth`) prior to JWT integration in Phase 5.
 9. PHASE 2 introduces Postgres and Redis as Aspire resources, with EF Core 10 + Npgsql 10 for persistence.
 10. API applies migrations at startup and seeds baseline station/show/user/poll data for local demos.
+11. SignalR hub endpoint is `/hubs/engagement` and is used by Blazor Server for cross-tab live poll/shoutout updates.
