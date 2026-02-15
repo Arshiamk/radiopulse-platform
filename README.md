@@ -122,6 +122,7 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
 
 ## Security
 - JWT bearer auth for write operations + SignalR hub auth.
+- Write operations enforce authenticated `userId` (token identity must match payload).
 - Local dev token endpoint for demo sessions.
 - Public read endpoint rate limiting enabled.
 - Input validation and structured error responses included.

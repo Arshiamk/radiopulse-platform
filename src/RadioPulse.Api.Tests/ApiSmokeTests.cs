@@ -127,6 +127,43 @@ public sealed class ApiSmokeTests : IClassFixture<RadioPulseApiFactory>
     }
 
     [Fact]
+    public async Task VoteWrite_WithMismatchedTokenAndPayloadUser_ReturnsForbidden()
+    {
+        var token = await GetDevTokenAsync(Guid.Parse("22222222-2222-2222-2222-222222222222"));
+        using var voteRequest = new HttpRequestMessage(HttpMethod.Post, "/api/polls/votes")
+        {
+            Content = JsonContent.Create(new
+            {
+                PollId = Guid.NewGuid(),
+                UserId = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                Choice = "Track A"
+            })
+        };
+        voteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.SendAsync(voteRequest);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ShoutoutWrite_WithMismatchedTokenAndPayloadUser_ReturnsForbidden()
+    {
+        var token = await GetDevTokenAsync(Guid.Parse("22222222-2222-2222-2222-222222222222"));
+        using var shoutoutRequest = new HttpRequestMessage(HttpMethod.Post, "/api/shoutouts")
+        {
+            Content = JsonContent.Create(new
+            {
+                UserId = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                Message = "No spoofing"
+            })
+        };
+        shoutoutRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.SendAsync(shoutoutRequest);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task DevTokenEndpoint_SupportsMultipleDemoProfiles()
     {
         var lena = await client.GetFromJsonAsync<TokenResponse>("/api/auth/dev-token/22222222-2222-2222-2222-222222222222");
@@ -137,9 +174,14 @@ public sealed class ApiSmokeTests : IClassFixture<RadioPulseApiFactory>
         Assert.NotEqual(lena!.AccessToken, luna!.AccessToken);
     }
 
-    private async Task<string> GetDevTokenAsync()
+    private Task<string> GetDevTokenAsync()
     {
-        var tokenResponse = await client.GetFromJsonAsync<TokenResponse>("/api/auth/dev-token/22222222-2222-2222-2222-222222222222");
+        return GetDevTokenAsync(Guid.Parse("22222222-2222-2222-2222-222222222222"));
+    }
+
+    private async Task<string> GetDevTokenAsync(Guid userId)
+    {
+        var tokenResponse = await client.GetFromJsonAsync<TokenResponse>($"/api/auth/dev-token/{userId}");
         Assert.NotNull(tokenResponse);
         Assert.False(string.IsNullOrWhiteSpace(tokenResponse!.AccessToken));
         return tokenResponse.AccessToken;

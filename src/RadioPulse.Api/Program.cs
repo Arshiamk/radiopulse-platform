@@ -247,7 +247,7 @@ app.MapPost("/api/polls", async ([FromBody] CreatePollRequest? request, IRadioPu
 })
 .RequireAuthorization();
 
-app.MapPost("/api/polls/votes", async ([FromBody] CreateVoteRequest? request, IRadioPulseService service, CancellationToken cancellationToken) =>
+app.MapPost("/api/polls/votes", async ([FromBody] CreateVoteRequest? request, ClaimsPrincipal user, IRadioPulseService service, CancellationToken cancellationToken) =>
 {
     if (request is null || request.PollId == Guid.Empty || request.UserId == Guid.Empty || string.IsNullOrWhiteSpace(request.Choice))
     {
@@ -255,6 +255,16 @@ app.MapPost("/api/polls/votes", async ([FromBody] CreateVoteRequest? request, IR
         {
             ["vote"] = ["PollId, UserId and Choice are required."]
         });
+    }
+
+    if (!TryGetAuthenticatedUserId(user, out var principalUserId))
+    {
+        return Results.Forbid();
+    }
+
+    if (request.UserId != principalUserId)
+    {
+        return Results.Forbid();
     }
 
     var vote = await service.CreateVoteAsync(request.PollId, request.UserId, request.Choice, cancellationToken);
@@ -296,7 +306,7 @@ app.MapGet("/api/recommendations/{userId:guid}", async (Guid userId, RadioPulseD
 })
 .RequireRateLimiting("public");
 
-app.MapPost("/api/shoutouts", async ([FromBody] CreateShoutoutRequest? request, IRadioPulseService service, CancellationToken cancellationToken) =>
+app.MapPost("/api/shoutouts", async ([FromBody] CreateShoutoutRequest? request, ClaimsPrincipal user, IRadioPulseService service, CancellationToken cancellationToken) =>
 {
     if (request is null || request.UserId == Guid.Empty || string.IsNullOrWhiteSpace(request.Message) || request.Message.Length > 280)
     {
@@ -304,6 +314,16 @@ app.MapPost("/api/shoutouts", async ([FromBody] CreateShoutoutRequest? request, 
         {
             ["message"] = ["Message is required and must be <= 280 chars."]
         });
+    }
+
+    if (!TryGetAuthenticatedUserId(user, out var principalUserId))
+    {
+        return Results.Forbid();
+    }
+
+    if (request.UserId != principalUserId)
+    {
+        return Results.Forbid();
     }
 
     var shoutout = await service.CreateShoutoutAsync(request.UserId, request.Message, cancellationToken);
@@ -314,6 +334,14 @@ app.MapPost("/api/shoutouts", async ([FromBody] CreateShoutoutRequest? request, 
 app.MapHub<EngagementHub>("/hubs/engagement").RequireAuthorization();
 
 app.Run();
+
+static bool TryGetAuthenticatedUserId(ClaimsPrincipal user, out Guid userId)
+{
+    var raw = user.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? user.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+    return Guid.TryParse(raw, out userId);
+}
 
 public sealed record CreatePollRequest(Guid ShowId, string Question);
 public sealed record CreateVoteRequest(Guid PollId, Guid UserId, string Choice);
