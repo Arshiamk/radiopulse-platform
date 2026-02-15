@@ -120,6 +120,13 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
 - Aspire dashboard gives traces/logs/resource graph locally.
 - Configure OTLP exporter with `OTEL_EXPORTER_OTLP_ENDPOINT`.
 
+## AI Provider Modes
+- Worker defaults to deterministic `FakeAzureAiProvider` for local-first runs.
+- Azure mode activates when either:
+  - `UseAzureAi=true`, or
+  - all `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT` are present.
+- Optional: `AZURE_OPENAI_API_VERSION` (defaults to `2024-10-21`).
+
 ## Security
 - JWT bearer auth for write operations + SignalR hub auth.
 - Write operations enforce authenticated `userId` (token identity must match payload).

@@ -15,7 +15,12 @@ builder.Services.AddDbContext<WorkerDbContext>(options => options.UseNpgsql(post
 builder.Services.AddHttpClient("azure-openai");
 
 var useAzure = builder.Configuration.GetValue<bool>("UseAzureAi");
-if (useAzure)
+var hasAzureConfig =
+    !string.IsNullOrWhiteSpace(builder.Configuration["AZURE_OPENAI_ENDPOINT"]) &&
+    !string.IsNullOrWhiteSpace(builder.Configuration["AZURE_OPENAI_API_KEY"]) &&
+    !string.IsNullOrWhiteSpace(builder.Configuration["AZURE_OPENAI_DEPLOYMENT"]);
+
+if (useAzure || hasAzureConfig)
 {
     builder.Services.AddSingleton<ITranscriptProvider, AzureAiProvider>();
     builder.Services.AddSingleton<ISummarizer, AzureAiProvider>();
@@ -29,4 +34,15 @@ else
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
+
+var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("RadioPulse.Worker.Startup");
+if (useAzure || hasAzureConfig)
+{
+    logger.LogInformation("Worker AI provider: AzureAiProvider (UseAzureAi={UseAzureAi}, HasAzureConfig={HasAzureConfig})", useAzure, hasAzureConfig);
+}
+else
+{
+    logger.LogInformation("Worker AI provider: FakeAzureAiProvider (local deterministic mode).");
+}
+
 host.Run();
