@@ -12,6 +12,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - name: Restore MAUI Workloads
+        run: dotnet workload restore src/RadioPulse.Mobile/RadioPulse.Mobile.csproj
       - name: Restore
         run: dotnet restore src/RadioPulse.slnx
       - name: Build
