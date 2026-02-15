@@ -9,4 +9,5 @@ WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8081
 ENV ASPNETCORE_URLS=http://+:8081
+USER $APP_UID
 ENTRYPOINT ["dotnet", "RadioPulse.Web.dll"]

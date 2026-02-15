@@ -20,11 +20,17 @@ spec:
             - containerPort: 8080
           env:
             - name: ConnectionStrings__radiopulsedb
-              value: Host=postgres;Port=5432;Database=radiopulsedb;Username=postgres;Password=postgres
+              valueFrom:
+                secretKeyRef:
+                  name: radiopulse-secrets
+                  key: conn-radiopulsedb
             - name: ConnectionStrings__redis
               value: redis:6379
             - name: Auth__Key
-              value: radiopulse-dev-signing-key-please-change
+              valueFrom:
+                secretKeyRef:
+                  name: radiopulse-secrets
+                  key: api-auth-key
             - name: EnableHttpsRedirection
               value: "false"
           livenessProbe:

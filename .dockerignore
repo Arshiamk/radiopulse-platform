@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/*.user
+**/*.suo
+**/*.nupkg
+**/TestResults/
+.git/
+.github/
+docs/screenshots/
+node_modules/
+api-smoke.out.log
+api-smoke.err.log
+web-smoke.out.log
+web-smoke.err.log

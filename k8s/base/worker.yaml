@@ -18,7 +18,10 @@ spec:
           image: ghcr.io/OWNER/radiopulse-worker:latest
           env:
             - name: ConnectionStrings__radiopulsedb
-              value: Host=postgres;Port=5432;Database=radiopulsedb;Username=postgres;Password=postgres
+              valueFrom:
+                secretKeyRef:
+                  name: radiopulse-secrets
+                  key: conn-radiopulsedb
             - name: ConnectionStrings__redis
               value: redis:6379
             - name: UseAzureAi

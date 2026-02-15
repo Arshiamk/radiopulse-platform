@@ -7,4 +7,5 @@ RUN dotnet publish src/RadioPulse.Worker/RadioPulse.Worker.csproj -c Release -o 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+USER $APP_UID
 ENTRYPOINT ["dotnet", "RadioPulse.Worker.dll"]

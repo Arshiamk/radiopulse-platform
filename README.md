@@ -100,6 +100,8 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
    - Web: `http://localhost:8081`
    - API: `http://localhost:8080/api/status`
 3. Notes:
+   - `.dockerignore` excludes build/test artifacts for faster and cleaner image builds.
+   - .NET service containers run as non-root (`USER $APP_UID`).
    - Containers run HTTP-only in local compose (`EnableHttpsRedirection=false`).
    - Web API discovery is wired via `services__api__http__0=http://api:8080`.
 4. Stop:
@@ -112,6 +114,7 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
    - `kubectl apply -k k8s/base`
 4. Optional local ingress host: map `radiopulse.local` to ingress controller.
 5. Notes:
+   - `k8s/base/secrets.yaml` contains local/dev defaults; replace before production deploy.
    - Web resolves API through `services__api__http__0=http://api:8080`.
    - Liveness/readiness probes are configured for API/Web (`/health`).
 

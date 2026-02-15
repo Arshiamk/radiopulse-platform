@@ -20,7 +20,10 @@ spec:
             - name: POSTGRES_USER
               value: postgres
             - name: POSTGRES_PASSWORD
-              value: postgres
+              valueFrom:
+                secretKeyRef:
+                  name: radiopulse-secrets
+                  key: postgres-password
             - name: POSTGRES_DB
               value: radiopulsedb
           ports:
