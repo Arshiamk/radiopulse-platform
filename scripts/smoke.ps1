@@ -25,7 +25,12 @@ function Wait-ForReady {
         Start-Sleep -Milliseconds 750
     }
 
-    throw "Timed out waiting for $Url"
+    $apiOutTail = if (Test-Path "api-smoke.out.log") { (Get-Content "api-smoke.out.log" -Tail 120 -ErrorAction SilentlyContinue) -join [Environment]::NewLine } else { "(missing api-smoke.out.log)" }
+    $apiErrTail = if (Test-Path "api-smoke.err.log") { (Get-Content "api-smoke.err.log" -Tail 120 -ErrorAction SilentlyContinue) -join [Environment]::NewLine } else { "(missing api-smoke.err.log)" }
+    $webOutTail = if (Test-Path "web-smoke.out.log") { (Get-Content "web-smoke.out.log" -Tail 120 -ErrorAction SilentlyContinue) -join [Environment]::NewLine } else { "(missing web-smoke.out.log)" }
+    $webErrTail = if (Test-Path "web-smoke.err.log") { (Get-Content "web-smoke.err.log" -Tail 120 -ErrorAction SilentlyContinue) -join [Environment]::NewLine } else { "(missing web-smoke.err.log)" }
+
+    throw "Timed out waiting for $Url`n--- api-smoke.out.log ---`n$apiOutTail`n--- api-smoke.err.log ---`n$apiErrTail`n--- web-smoke.out.log ---`n$webOutTail`n--- web-smoke.err.log ---`n$webErrTail"
 }
 
 function Resolve-ListeningUrl {
@@ -97,6 +102,7 @@ $previousServiceApi = $env:services__api__https__0
 $previousServiceApiHttp = $env:services__api__http__0
 $previousAspNetEnv = $env:ASPNETCORE_ENVIRONMENT
 $previousDotnetEnv = $env:DOTNET_ENVIRONMENT
+$previousAspNetCoreUrls = $env:ASPNETCORE_URLS
 
 try {
     $env:UseInMemoryDb = "true"
@@ -106,7 +112,16 @@ try {
     $apiOut = "api-smoke.out.log"
     $apiErr = "api-smoke.err.log"
     Remove-Item $apiOut, $apiErr -ErrorAction SilentlyContinue
-    $apiArgs = @("run", "--project", "src/RadioPulse.Api/RadioPulse.Api.csproj", "--configuration", $Configuration, "--launch-profile", $ApiLaunchProfile)
+    $apiArgs = @("run", "--project", "src/RadioPulse.Api/RadioPulse.Api.csproj", "--configuration", $Configuration)
+    if ($ApiLaunchProfile -eq "none")
+    {
+        $apiArgs += "--no-launch-profile"
+        $env:ASPNETCORE_URLS = $ApiUrl
+    }
+    else
+    {
+        $apiArgs += @("--launch-profile", $ApiLaunchProfile)
+    }
     if ($NoBuild) {
         $apiArgs += "--no-build"
     }
@@ -126,7 +141,16 @@ try {
     $webOut = "web-smoke.out.log"
     $webErr = "web-smoke.err.log"
     Remove-Item $webOut, $webErr -ErrorAction SilentlyContinue
-    $webArgs = @("run", "--project", "src/RadioPulse.Web/RadioPulse.Web.csproj", "--configuration", $Configuration, "--launch-profile", $WebLaunchProfile)
+    $webArgs = @("run", "--project", "src/RadioPulse.Web/RadioPulse.Web.csproj", "--configuration", $Configuration)
+    if ($WebLaunchProfile -eq "none")
+    {
+        $webArgs += "--no-launch-profile"
+        $env:ASPNETCORE_URLS = $WebUrl
+    }
+    else
+    {
+        $webArgs += @("--launch-profile", $WebLaunchProfile)
+    }
     if ($NoBuild) {
         $webArgs += "--no-build"
     }
@@ -214,4 +238,5 @@ finally {
     if ($null -eq $previousServiceApiHttp) { Remove-Item Env:services__api__http__0 -ErrorAction SilentlyContinue } else { $env:services__api__http__0 = $previousServiceApiHttp }
     if ($null -eq $previousAspNetEnv) { Remove-Item Env:ASPNETCORE_ENVIRONMENT -ErrorAction SilentlyContinue } else { $env:ASPNETCORE_ENVIRONMENT = $previousAspNetEnv }
     if ($null -eq $previousDotnetEnv) { Remove-Item Env:DOTNET_ENVIRONMENT -ErrorAction SilentlyContinue } else { $env:DOTNET_ENVIRONMENT = $previousDotnetEnv }
+    if ($null -eq $previousAspNetCoreUrls) { Remove-Item Env:ASPNETCORE_URLS -ErrorAction SilentlyContinue } else { $env:ASPNETCORE_URLS = $previousAspNetCoreUrls }
 }
