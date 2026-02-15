@@ -1,3 +1,8 @@
 <Solution>
+  <Project Path="RadioPulse.Api/RadioPulse.Api.csproj" />
+  <Project Path="RadioPulse.AppHost/RadioPulse.AppHost.csproj" />
   <Project Path="RadioPulse.Domain/RadioPulse.Domain.csproj" />
+  <Project Path="RadioPulse.ServiceDefaults/RadioPulse.ServiceDefaults.csproj" />
+  <Project Path="RadioPulse.Web/RadioPulse.Web.csproj" />
+  <Project Path="RadioPulse.Worker/RadioPulse.Worker.csproj" />
 </Solution>

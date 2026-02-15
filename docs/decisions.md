@@ -12,3 +12,6 @@
    - `CONTRIBUTING.md`
    - `SECURITY.md`
    - GitHub issue templates
+6. PHASE 1 uses .NET Aspire AppHost for orchestration and ServiceDefaults for shared telemetry, health, and service discovery defaults.
+7. API endpoints are namespaced under `/api/*` from the start to keep compatibility with upcoming versions.
+8. Blazor Web includes an explicit phase-1 auth placeholder page (`/auth`) prior to JWT integration in Phase 5.

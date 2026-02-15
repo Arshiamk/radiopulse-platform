@@ -1,0 +1,17 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.1.1">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>3ceddffd-22ed-4854-b227-90c446744e9a</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RadioPulse.Api\RadioPulse.Api.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\RadioPulse.Web\RadioPulse.Web.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\RadioPulse.Worker\RadioPulse.Worker.csproj" IsAspireProjectResource="true" />
+  </ItemGroup>
+
+</Project>

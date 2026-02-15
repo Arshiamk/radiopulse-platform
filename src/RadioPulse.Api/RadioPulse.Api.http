@@ -1,0 +1,6 @@
+@RadioPulse.Api_HostAddress = http://localhost:5003
+
+GET {{RadioPulse.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
