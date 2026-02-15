@@ -103,11 +103,13 @@ $previousServiceApiHttp = $env:services__api__http__0
 $previousAspNetEnv = $env:ASPNETCORE_ENVIRONMENT
 $previousDotnetEnv = $env:DOTNET_ENVIRONMENT
 $previousAspNetCoreUrls = $env:ASPNETCORE_URLS
+$previousEnableHttpsRedirection = $env:EnableHttpsRedirection
 
 try {
     $env:UseInMemoryDb = "true"
     $env:ASPNETCORE_ENVIRONMENT = "Development"
     $env:DOTNET_ENVIRONMENT = "Development"
+    $env:EnableHttpsRedirection = "false"
 
     $apiOut = "api-smoke.out.log"
     $apiErr = "api-smoke.err.log"
@@ -116,7 +118,8 @@ try {
     if ($ApiLaunchProfile -eq "none")
     {
         $apiArgs += "--no-launch-profile"
-        $env:ASPNETCORE_URLS = $ApiUrl
+        $apiArgs += "-p:UseAppHost=false"
+        $apiArgs += @("--urls", $ApiUrl)
     }
     else
     {
@@ -145,7 +148,8 @@ try {
     if ($WebLaunchProfile -eq "none")
     {
         $webArgs += "--no-launch-profile"
-        $env:ASPNETCORE_URLS = $WebUrl
+        $webArgs += "-p:UseAppHost=false"
+        $webArgs += @("--urls", $WebUrl)
     }
     else
     {
@@ -239,4 +243,5 @@ finally {
     if ($null -eq $previousAspNetEnv) { Remove-Item Env:ASPNETCORE_ENVIRONMENT -ErrorAction SilentlyContinue } else { $env:ASPNETCORE_ENVIRONMENT = $previousAspNetEnv }
     if ($null -eq $previousDotnetEnv) { Remove-Item Env:DOTNET_ENVIRONMENT -ErrorAction SilentlyContinue } else { $env:DOTNET_ENVIRONMENT = $previousDotnetEnv }
     if ($null -eq $previousAspNetCoreUrls) { Remove-Item Env:ASPNETCORE_URLS -ErrorAction SilentlyContinue } else { $env:ASPNETCORE_URLS = $previousAspNetCoreUrls }
+    if ($null -eq $previousEnableHttpsRedirection) { Remove-Item Env:EnableHttpsRedirection -ErrorAction SilentlyContinue } else { $env:EnableHttpsRedirection = $previousEnableHttpsRedirection }
 }
