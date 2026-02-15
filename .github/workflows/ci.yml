@@ -17,7 +17,7 @@ jobs:
       - name: Restore
         run: dotnet restore src/RadioPulse.slnx -r win-x64
       - name: Build
-        run: dotnet build src/RadioPulse.slnx -c Release -r win-x64 --no-restore
+        run: dotnet build src/RadioPulse.slnx -c Release --no-restore
       - name: Test
         run: dotnet test src/RadioPulse.slnx -c Release --no-build
       - name: Smoke (API + Web runtime)
