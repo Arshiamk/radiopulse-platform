@@ -87,7 +87,7 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
 6. Demo flow in web:
    - open `/weather` to verify API probe
    - open `/diagnostics` and run checks (all should pass)
-   - open `/auth` and sign in as `Lena`
+   - open `/auth` and sign in as `Lena` or `Luna`
    - open `/engagement` to create polls/votes/shoutouts
    - open `/media` and `/recommendations` to verify content and signed-in personalization
 7. Optional automated smoke validation:

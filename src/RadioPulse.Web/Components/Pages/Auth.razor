@@ -70,6 +70,10 @@
         {
             // JS interop may be unavailable during prerender.
         }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to restore saved sign-in state: {ex.Message}";
+        }
     }
 
     private async Task SignInAsync(DemoProfile profile)

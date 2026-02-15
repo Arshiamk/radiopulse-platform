@@ -124,6 +124,10 @@
         {
             // JS interop may be unavailable during prerender.
         }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to restore saved auth state: {ex.Message}";
+        }
     }
 
     private async Task LoadInitialStateAsync()

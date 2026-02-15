@@ -17,6 +17,7 @@ public sealed class WebPageSmokeTests : IClassFixture<WebAppFactory>
     [InlineData("/engagement", "Live Poll and Shoutouts")]
     [InlineData("/media", "Now Playing and Schedule")]
     [InlineData("/recommendations", "Recommended For You")]
+    [InlineData("/weather", "API Probe")]
     [InlineData("/diagnostics", "System Diagnostics")]
     public async Task Route_RendersExpectedHeading(string route, string expectedText)
     {
