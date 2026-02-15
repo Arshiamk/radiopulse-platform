@@ -142,6 +142,7 @@ Europe-wide commercial radio engagement platform built on `.NET 10` + `Aspire`.
 - Current repo build targets Windows MAUI in this environment.
 - API URL is configurable via `RADIOPULSE_API_URL` env var and from the Login page input.
 - Default mobile API URL is `http://localhost:5003` for local Aspire HTTP profile.
+- Windows manifest metadata uses concrete RadioPulse identity/logos (no template placeholders).
 
 ## Demo Script
 - `docs/demo-script.md`

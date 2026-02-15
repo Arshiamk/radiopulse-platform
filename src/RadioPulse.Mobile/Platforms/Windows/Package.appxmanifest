@@ -6,14 +6,14 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap rescap">
 
-  <Identity Name="maui-package-name-placeholder" Publisher="CN=User Name" Version="0.0.0.0" />
+  <Identity Name="com.radiopulse.mobile" Publisher="CN=RadioPulseDev" Version="1.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="8F8688E4-55BC-4384-965F-9BA2385A8CD1" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>$placeholder$</DisplayName>
-    <PublisherDisplayName>User Name</PublisherDisplayName>
-    <Logo>$placeholder$.png</Logo>
+    <DisplayName>RadioPulse Mobile</DisplayName>
+    <PublisherDisplayName>RadioPulse</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
   <Dependencies>
@@ -28,13 +28,13 @@
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="$placeholder$"
-        Description="$placeholder$"
-        Square150x150Logo="$placeholder$.png"
-        Square44x44Logo="$placeholder$.png"
+        DisplayName="RadioPulse Mobile"
+        Description="Interactive commercial radio companion app"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png"
         BackgroundColor="transparent">
-        <uap:DefaultTile Square71x71Logo="$placeholder$.png" Wide310x150Logo="$placeholder$.png" Square310x310Logo="$placeholder$.png" />
-        <uap:SplashScreen Image="$placeholder$.png" />
+        <uap:DefaultTile Square71x71Logo="Assets\Square71x71Logo.png" Wide310x150Logo="Assets\Wide310x150Logo.png" Square310x310Logo="Assets\Square310x310Logo.png" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
     </Application>
   </Applications>

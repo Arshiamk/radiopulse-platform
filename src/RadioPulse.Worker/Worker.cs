@@ -34,26 +34,38 @@ public sealed class Worker(
         var dbContext = scope.ServiceProvider.GetRequiredService<WorkerDbContext>();
 
         var episode = await dbContext.Episodes
+            .Where(x => !dbContext.Transcripts.Any(t => t.EpisodeId == x.Id))
             .OrderByDescending(x => x.PublishedAtUtc)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (episode is null)
         {
-            logger.LogInformation("No episodes available for transcript processing.");
+            logger.LogInformation("No unprocessed episodes available for transcript processing.");
             return;
         }
 
-        var alreadyProcessed = await dbContext.Transcripts
-            .AnyAsync(x => x.EpisodeId == episode.Id, cancellationToken);
-
-        if (alreadyProcessed)
+        var source = string.IsNullOrWhiteSpace(episode.AudioUrl) ? episode.Title : episode.AudioUrl;
+        string transcriptText;
+        try
         {
-            logger.LogInformation("Episode {EpisodeId} already has transcript.", episode.Id);
-            return;
+            transcriptText = await transcriptProvider.TranscribeAsync(source, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Transcript provider failed for episode {EpisodeId}; using local fallback transcript.", episode.Id);
+            transcriptText = $"[LOCAL-FALLBACK-TRANSCRIPT] Source={source}";
         }
 
-        var transcriptText = await transcriptProvider.TranscribeAsync(episode.AudioUrl ?? episode.Title, cancellationToken);
-        var summary = await summarizer.SummarizeAsync(transcriptText, cancellationToken);
+        string summary;
+        try
+        {
+            summary = await summarizer.SummarizeAsync(transcriptText, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Summarizer failed for episode {EpisodeId}; using local fallback summary.", episode.Id);
+            summary = "Top moments unavailable due to provider issue; generated local fallback.";
+        }
 
         dbContext.Transcripts.Add(new Transcript
         {
