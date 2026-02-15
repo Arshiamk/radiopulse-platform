@@ -1,0 +1,14 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+*.swp
+*.pfx
+TestResults/
+artifacts/
+*.db
+*.sqlite
+*.log
+node_modules/
