@@ -5,7 +5,7 @@ RadioPulse is a Europe-wide commercial radio platform demo built with `.NET 10`,
 ## Progress
 - [x] Phase 0 - Repo scaffolding and standards
 - [x] Phase 1 - Aspire orchestration and core services
-- [ ] Phase 2 - Data layer and domain
+- [x] Phase 2 - Data layer and domain
 - [ ] Phase 3 - Real-time engagement
 - [ ] Phase 4 - Now playing, schedule, podcast UX
 - [ ] Phase 5 - AuthN/AuthZ and security hardening

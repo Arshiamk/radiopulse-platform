@@ -9,6 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.1.1" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="13.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\RadioPulse.Api\RadioPulse.Api.csproj" IsAspireProjectResource="true" />
     <ProjectReference Include="..\RadioPulse.Web\RadioPulse.Web.csproj" IsAspireProjectResource="true" />
     <ProjectReference Include="..\RadioPulse.Worker\RadioPulse.Worker.csproj" IsAspireProjectResource="true" />
