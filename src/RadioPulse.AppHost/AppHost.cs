@@ -4,7 +4,14 @@ var postgres = builder.AddPostgres("postgres")
     .WithDataVolume();
 var database = postgres.AddDatabase("radiopulsedb");
 
-var redis = builder.AddRedis("redis")
+// Use a stable dev password to avoid random special-character edge cases
+// that can surface as transient local health-check failures on some setups.
+var redisPassword = builder.AddParameter(
+    "redis-password",
+    "radiopulse-dev-redis-password",
+    publishValueAsDefault: true);
+
+var redis = builder.AddRedis("redis", port: null, password: redisPassword)
     .WithDataVolume();
 
 var api = builder.AddProject<Projects.RadioPulse_Api>("api")
