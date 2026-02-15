@@ -2,6 +2,8 @@ param(
     [string]$Configuration = "Debug",
     [string]$ApiUrl = "https://localhost:7189",
     [string]$WebUrl = "https://localhost:7068",
+    [string]$ApiLaunchProfile = "https",
+    [string]$WebLaunchProfile = "https",
     [switch]$NoBuild
 )
 
@@ -92,6 +94,7 @@ $apiProcess = $null
 $webProcess = $null
 $previousUseInMemory = $env:UseInMemoryDb
 $previousServiceApi = $env:services__api__https__0
+$previousServiceApiHttp = $env:services__api__http__0
 $previousAspNetEnv = $env:ASPNETCORE_ENVIRONMENT
 $previousDotnetEnv = $env:DOTNET_ENVIRONMENT
 
@@ -103,7 +106,7 @@ try {
     $apiOut = "api-smoke.out.log"
     $apiErr = "api-smoke.err.log"
     Remove-Item $apiOut, $apiErr -ErrorAction SilentlyContinue
-    $apiArgs = @("run", "--project", "src/RadioPulse.Api/RadioPulse.Api.csproj", "--configuration", $Configuration, "--launch-profile", "https")
+    $apiArgs = @("run", "--project", "src/RadioPulse.Api/RadioPulse.Api.csproj", "--configuration", $Configuration, "--launch-profile", $ApiLaunchProfile)
     if ($NoBuild) {
         $apiArgs += "--no-build"
     }
@@ -118,11 +121,12 @@ try {
     Wait-ForReady -Url "$resolvedApiUrl/api/status" -TimeoutSeconds 180
 
     $env:services__api__https__0 = $resolvedApiUrl
+    $env:services__api__http__0 = $resolvedApiUrl
 
     $webOut = "web-smoke.out.log"
     $webErr = "web-smoke.err.log"
     Remove-Item $webOut, $webErr -ErrorAction SilentlyContinue
-    $webArgs = @("run", "--project", "src/RadioPulse.Web/RadioPulse.Web.csproj", "--configuration", $Configuration, "--launch-profile", "https")
+    $webArgs = @("run", "--project", "src/RadioPulse.Web/RadioPulse.Web.csproj", "--configuration", $Configuration, "--launch-profile", $WebLaunchProfile)
     if ($NoBuild) {
         $webArgs += "--no-build"
     }
@@ -207,6 +211,7 @@ finally {
 
     if ($null -eq $previousUseInMemory) { Remove-Item Env:UseInMemoryDb -ErrorAction SilentlyContinue } else { $env:UseInMemoryDb = $previousUseInMemory }
     if ($null -eq $previousServiceApi) { Remove-Item Env:services__api__https__0 -ErrorAction SilentlyContinue } else { $env:services__api__https__0 = $previousServiceApi }
+    if ($null -eq $previousServiceApiHttp) { Remove-Item Env:services__api__http__0 -ErrorAction SilentlyContinue } else { $env:services__api__http__0 = $previousServiceApiHttp }
     if ($null -eq $previousAspNetEnv) { Remove-Item Env:ASPNETCORE_ENVIRONMENT -ErrorAction SilentlyContinue } else { $env:ASPNETCORE_ENVIRONMENT = $previousAspNetEnv }
     if ($null -eq $previousDotnetEnv) { Remove-Item Env:DOTNET_ENVIRONMENT -ErrorAction SilentlyContinue } else { $env:DOTNET_ENVIRONMENT = $previousDotnetEnv }
 }
