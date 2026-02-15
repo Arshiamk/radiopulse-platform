@@ -21,7 +21,7 @@ jobs:
       - name: Test
         run: dotnet test src/RadioPulse.slnx -c Release --no-build
       - name: Smoke (API + Web runtime)
-        run: powershell -ExecutionPolicy Bypass -File .\scripts\smoke.ps1 -Configuration Release -ApiLaunchProfile none -WebLaunchProfile none -ApiUrl http://localhost:5003 -WebUrl http://localhost:5235
+        run: powershell -ExecutionPolicy Bypass -File .\scripts\smoke.ps1 -Configuration Release -ApiLaunchProfile none -WebLaunchProfile none -ApiUrl http://localhost:18089 -WebUrl http://localhost:17068
 
   publish-images:
     needs: validate

@@ -60,11 +60,6 @@
     private string? summary;
     private int failedCount;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await RunChecksAsync();
-    }
-
     private async Task RunChecksAsync()
     {
         isRunning = true;
