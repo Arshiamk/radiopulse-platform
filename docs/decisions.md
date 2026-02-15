@@ -19,3 +19,4 @@
 10. API applies migrations at startup and seeds baseline station/show/user/poll data for local demos.
 11. SignalR hub endpoint is `/hubs/engagement` and is used by Blazor Server for cross-tab live poll/shoutout updates.
 12. PHASE 4 media UX is centered on `/api/now-playing`, `/api/shows`, and `/api/episodes` to support both Web and MAUI clients.
+13. PHASE 5 uses JWT bearer auth with a local dev token endpoint, auth-protected write operations, and fixed-window rate limiting on public reads.

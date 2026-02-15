@@ -1,5 +1,6 @@
 @page "/engagement"
 @using Microsoft.AspNetCore.SignalR.Client
+@using System.Text.Json.Serialization
 @inject IHttpClientFactory HttpClientFactory
 @implements IAsyncDisposable
 
@@ -71,15 +72,21 @@
     private bool isConnected;
     private string newPollQuestion = "What should play next?";
     private string newShoutout = string.Empty;
+    private string accessToken = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         var api = HttpClientFactory.CreateClient("radio-api");
+        var tokenResponse = await api.GetFromJsonAsync<TokenResponse>($"/api/auth/dev-token/{DemoUserId}");
+        accessToken = tokenResponse?.AccessToken ?? string.Empty;
         activePoll = await api.GetFromJsonAsync<PollDto>("/api/polls/active");
         shoutouts = await api.GetFromJsonAsync<List<ShoutoutDto>>("/api/shoutouts") ?? new List<ShoutoutDto>();
 
         hubConnection = new HubConnectionBuilder()
-            .WithUrl("http://api/hubs/engagement")
+            .WithUrl("http://api/hubs/engagement", options =>
+            {
+                options.AccessTokenProvider = () => Task.FromResult<string?>(accessToken);
+            })
             .WithAutomaticReconnect()
             .Build();
 
@@ -158,5 +165,11 @@
     {
         public string Message { get; set; } = string.Empty;
         public DateTimeOffset CreatedAtUtc { get; set; }
+    }
+
+    private sealed class TokenResponse
+    {
+        [JsonPropertyName("access_token")]
+        public string AccessToken { get; set; } = string.Empty;
     }
 }
