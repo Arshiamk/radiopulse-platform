@@ -34,6 +34,20 @@ public sealed class ApiSmokeTests : IClassFixture<RadioPulseApiFactory>
         Assert.Contains("Pulse One Europe", body);
     }
 
+    [Theory]
+    [InlineData("/weatherforecast")]
+    [InlineData("/api/weatherforecast")]
+    public async Task WeatherProbeEndpoints_ReturnForecastPayload(string route)
+    {
+        var response = await client.GetAsync(route);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var document = await JsonDocument.ParseAsync(stream);
+        Assert.True(document.RootElement.ValueKind == JsonValueKind.Array);
+        Assert.True(document.RootElement.GetArrayLength() > 0);
+    }
+
     [Fact]
     public async Task ShowsEndpoint_ReturnsDtoShapeWithoutStationGraph()
     {
@@ -110,6 +124,17 @@ public sealed class ApiSmokeTests : IClassFixture<RadioPulseApiFactory>
 
         var shoutoutResponse = await client.SendAsync(shoutoutRequest);
         shoutoutResponse.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
+    public async Task DevTokenEndpoint_SupportsMultipleDemoProfiles()
+    {
+        var lena = await client.GetFromJsonAsync<TokenResponse>("/api/auth/dev-token/22222222-2222-2222-2222-222222222222");
+        var luna = await client.GetFromJsonAsync<TokenResponse>("/api/auth/dev-token/33333333-3333-3333-3333-333333333333");
+
+        Assert.False(string.IsNullOrWhiteSpace(lena?.AccessToken));
+        Assert.False(string.IsNullOrWhiteSpace(luna?.AccessToken));
+        Assert.NotEqual(lena!.AccessToken, luna!.AccessToken);
     }
 
     private async Task<string> GetDevTokenAsync()
