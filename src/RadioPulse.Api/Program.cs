@@ -49,6 +49,12 @@ app.MapGet("/api/shows", async (IRadioPulseService service, CancellationToken ca
 app.MapGet("/api/episodes", async (RadioPulseDbContext dbContext, CancellationToken cancellationToken) =>
     await dbContext.Episodes.OrderByDescending(x => x.PublishedAtUtc).ToListAsync(cancellationToken));
 
+app.MapGet("/api/now-playing", async (IRadioPulseService service, CancellationToken cancellationToken) =>
+{
+    var episode = await service.GetNowPlayingAsync(cancellationToken);
+    return episode is null ? Results.NotFound() : Results.Ok(episode);
+});
+
 app.MapGet("/api/polls/active", async (IRadioPulseService service, CancellationToken cancellationToken) =>
 {
     var poll = await service.GetActivePollAsync(cancellationToken);

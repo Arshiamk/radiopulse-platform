@@ -1,0 +1,79 @@
+@page "/media"
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Now Playing</PageTitle>
+
+<h1>Now Playing and Schedule</h1>
+
+@if (nowPlaying is null)
+{
+    <p><em>Loading now playing...</em></p>
+}
+else
+{
+    <div class="card p-3 mb-4">
+        <h4>@nowPlaying.Title</h4>
+        <p class="text-muted">Published: @nowPlaying.PublishedAtUtc.ToLocalTime()</p>
+        @if (!string.IsNullOrWhiteSpace(nowPlaying.AudioUrl))
+        {
+            <audio controls class="w-100">
+                <source src="@nowPlaying.AudioUrl" type="audio/mpeg" />
+            </audio>
+        }
+    </div>
+}
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5>Show Schedule</h5>
+            <ul>
+                @foreach (var show in shows)
+                {
+                    <li>@show.Title with @show.HostName (@show.StartTimeUtc - @show.EndTimeUtc UTC)</li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5>Podcast Episodes</h5>
+            <ul>
+                @foreach (var episode in episodes)
+                {
+                    <li>@episode.Title</li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+@code {
+    private EpisodeDto? nowPlaying;
+    private List<ShowDto> shows = new();
+    private List<EpisodeDto> episodes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = HttpClientFactory.CreateClient("radio-api");
+        nowPlaying = await client.GetFromJsonAsync<EpisodeDto>("/api/now-playing");
+        shows = await client.GetFromJsonAsync<List<ShowDto>>("/api/shows") ?? new List<ShowDto>();
+        episodes = await client.GetFromJsonAsync<List<EpisodeDto>>("/api/episodes") ?? new List<EpisodeDto>();
+    }
+
+    private sealed class ShowDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string HostName { get; set; } = string.Empty;
+        public TimeOnly StartTimeUtc { get; set; }
+        public TimeOnly EndTimeUtc { get; set; }
+    }
+
+    private sealed class EpisodeDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? AudioUrl { get; set; }
+        public DateTimeOffset PublishedAtUtc { get; set; }
+    }
+}
