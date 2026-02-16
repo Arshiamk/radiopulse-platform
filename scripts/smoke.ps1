@@ -133,18 +133,25 @@ try {
 
     $apiOut = "api-smoke.out.log"
     $apiErr = "api-smoke.err.log"
+    $webOut = "web-smoke.out.log"
+    $webErr = "web-smoke.err.log"
+    Remove-Item $webOut, $webErr -ErrorAction SilentlyContinue
     Remove-Item $apiOut, $apiErr -ErrorAction SilentlyContinue
-    $apiArgs = @("run", "--project", "src/RadioPulse.Api/RadioPulse.Api.csproj", "--configuration", $Configuration)
+    $apiArgs = @()
     if ($ApiLaunchProfile -eq "none")
     {
-        $apiArgs += "--no-launch-profile"
-        $apiArgs += "-p:UseAppHost=false"
+        $apiDll = Join-Path (Get-Location) "src/RadioPulse.Api/bin/$Configuration/net10.0/RadioPulse.Api.dll"
+        if (-not (Test-Path $apiDll)) {
+            throw "API DLL not found at $apiDll. Build first or remove -NoBuild."
+        }
+
+        $apiArgs = @("`"$apiDll`"", "--urls", $ApiUrl)
     }
     else
     {
-        $apiArgs += @("--launch-profile", $ApiLaunchProfile)
+        $apiArgs = @("run", "--project", "src/RadioPulse.Api/RadioPulse.Api.csproj", "--configuration", $Configuration, "--launch-profile", $ApiLaunchProfile)
     }
-    if ($NoBuild) {
+    if ($NoBuild -and $ApiLaunchProfile -ne "none") {
         $apiArgs += "--no-build"
     }
 
@@ -160,21 +167,22 @@ try {
     $env:services__api__https__0 = $resolvedApiUrl
     $env:services__api__http__0 = $resolvedApiUrl
 
-    $webOut = "web-smoke.out.log"
-    $webErr = "web-smoke.err.log"
-    Remove-Item $webOut, $webErr -ErrorAction SilentlyContinue
     $env:ASPNETCORE_URLS = $WebUrl
-    $webArgs = @("run", "--project", "src/RadioPulse.Web/RadioPulse.Web.csproj", "--configuration", $Configuration)
+    $webArgs = @()
     if ($WebLaunchProfile -eq "none")
     {
-        $webArgs += "--no-launch-profile"
-        $webArgs += "-p:UseAppHost=false"
+        $webDll = Join-Path (Get-Location) "src/RadioPulse.Web/bin/$Configuration/net10.0/RadioPulse.Web.dll"
+        if (-not (Test-Path $webDll)) {
+            throw "Web DLL not found at $webDll. Build first or remove -NoBuild."
+        }
+
+        $webArgs = @("`"$webDll`"", "--urls", $WebUrl)
     }
     else
     {
-        $webArgs += @("--launch-profile", $WebLaunchProfile)
+        $webArgs = @("run", "--project", "src/RadioPulse.Web/RadioPulse.Web.csproj", "--configuration", $Configuration, "--launch-profile", $WebLaunchProfile)
     }
-    if ($NoBuild) {
+    if ($NoBuild -and $WebLaunchProfile -ne "none") {
         $webArgs += "--no-build"
     }
 

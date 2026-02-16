@@ -135,8 +135,18 @@ using (var scope = app.Services.CreateScope())
     }
 
     await SeedData.EnsureSeededAsync(dbContext, CancellationToken.None);
-    var modelPath = Path.Combine(AppContext.BaseDirectory, "models", "recommendations.zip");
-    recommendationEngine.EnsureModel(modelPath, await dbContext.ListenEvents.ToListAsync());
+    var listenEvents = await dbContext.ListenEvents.ToListAsync();
+
+    if (useInMemoryDb)
+    {
+        // Keep smoke and CI startup deterministic by skipping model warm-up in ephemeral in-memory mode.
+        app.Logger.LogInformation("In-memory mode detected; skipping recommendation model warm-up.");
+    }
+    else
+    {
+        var modelPath = Path.Combine(AppContext.BaseDirectory, "models", "recommendations.zip");
+        recommendationEngine.EnsureModel(modelPath, listenEvents);
+    }
 }
 
 app.MapGet("/api/status", () => Results.Ok(new
