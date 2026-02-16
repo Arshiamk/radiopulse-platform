@@ -17,18 +17,31 @@ function Wait-ForReady {
         [string]$ProcessName = "process"
     )
 
+    $uri = [Uri]$Url
     $start = Get-Date
     while (((Get-Date) - $start).TotalSeconds -lt $TimeoutSeconds) {
         if ($Process -and $Process.HasExited) {
             throw "$ProcessName exited early with code $($Process.ExitCode) while waiting for $Url"
         }
 
-        $code = & curl.exe -k -s -o NUL -w "%{http_code}" $Url
-        if ($code -eq "200") {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        try {
+            $connectTask = $tcpClient.ConnectAsync($uri.Host, $uri.Port)
+            if (-not $connectTask.Wait(500) -or -not $tcpClient.Connected) {
+                Start-Sleep -Milliseconds 500
+                continue
+            }
+        }
+        finally {
+            $tcpClient.Dispose()
+        }
+
+        $code = & curl.exe -k -s -o NUL -w "%{http_code}" --max-time 5 $Url
+        if ($code -match "^[234]\d\d$") {
             return
         }
 
-        Start-Sleep -Milliseconds 750
+        Start-Sleep -Milliseconds 500
     }
 
     $apiOutTail = if (Test-Path "api-smoke.out.log") { (Get-Content "api-smoke.out.log" -Tail 120 -ErrorAction SilentlyContinue) -join [Environment]::NewLine } else { "(missing api-smoke.out.log)" }

@@ -144,8 +144,7 @@ app.MapGet("/api/status", () => Results.Ok(new
     Service = "RadioPulse.Api",
     Version = "phase-5",
     UtcNow = DateTimeOffset.UtcNow
-}))
-.RequireRateLimiting("public");
+}));
 
 var summaries = new[]
 {
