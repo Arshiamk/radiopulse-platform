@@ -12,11 +12,17 @@ $ErrorActionPreference = "Stop"
 function Wait-ForReady {
     param(
         [Parameter(Mandatory = $true)][string]$Url,
-        [int]$TimeoutSeconds = 60
+        [int]$TimeoutSeconds = 60,
+        [System.Diagnostics.Process]$Process = $null,
+        [string]$ProcessName = "process"
     )
 
     $start = Get-Date
     while (((Get-Date) - $start).TotalSeconds -lt $TimeoutSeconds) {
+        if ($Process -and $Process.HasExited) {
+            throw "$ProcessName exited early with code $($Process.ExitCode) while waiting for $Url"
+        }
+
         $code = & curl.exe -k -s -o NUL -w "%{http_code}" $Url
         if ($code -eq "200") {
             return
@@ -110,6 +116,7 @@ try {
     $env:ASPNETCORE_ENVIRONMENT = "Development"
     $env:DOTNET_ENVIRONMENT = "Development"
     $env:EnableHttpsRedirection = "false"
+    $env:ASPNETCORE_URLS = $ApiUrl
 
     $apiOut = "api-smoke.out.log"
     $apiErr = "api-smoke.err.log"
@@ -119,7 +126,6 @@ try {
     {
         $apiArgs += "--no-launch-profile"
         $apiArgs += "-p:UseAppHost=false"
-        $apiArgs += @("--", "--urls", $ApiUrl)
     }
     else
     {
@@ -136,7 +142,7 @@ try {
         -RedirectStandardError $apiErr
 
     $resolvedApiUrl = Resolve-ListeningUrl -LogPath $apiOut -FallbackUrl $ApiUrl
-    Wait-ForReady -Url "$resolvedApiUrl/api/status" -TimeoutSeconds 180
+    Wait-ForReady -Url "$resolvedApiUrl/api/status" -TimeoutSeconds 90 -Process $apiProcess -ProcessName "api"
 
     $env:services__api__https__0 = $resolvedApiUrl
     $env:services__api__http__0 = $resolvedApiUrl
@@ -144,12 +150,12 @@ try {
     $webOut = "web-smoke.out.log"
     $webErr = "web-smoke.err.log"
     Remove-Item $webOut, $webErr -ErrorAction SilentlyContinue
+    $env:ASPNETCORE_URLS = $WebUrl
     $webArgs = @("run", "--project", "src/RadioPulse.Web/RadioPulse.Web.csproj", "--configuration", $Configuration)
     if ($WebLaunchProfile -eq "none")
     {
         $webArgs += "--no-launch-profile"
         $webArgs += "-p:UseAppHost=false"
-        $webArgs += @("--", "--urls", $WebUrl)
     }
     else
     {
@@ -166,7 +172,7 @@ try {
         -RedirectStandardError $webErr
 
     $resolvedWebUrl = Resolve-ListeningUrl -LogPath $webOut -FallbackUrl $WebUrl
-    Wait-ForReady -Url "$resolvedWebUrl/auth" -TimeoutSeconds 120
+    Wait-ForReady -Url "$resolvedWebUrl/auth" -TimeoutSeconds 60 -Process $webProcess -ProcessName "web"
 
     Invoke-Check -Name "API status" -Url "$resolvedApiUrl/api/status" | Out-Null
     Invoke-Check -Name "API shows" -Url "$resolvedApiUrl/api/shows" | Out-Null
